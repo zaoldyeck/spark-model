@@ -16,8 +16,10 @@ object Main {
   val akkaLogger = Logger("！！This Is Important Message！！")
 
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
+  //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
+  //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/temp_pg_game_target_game_id_not_90.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/temp_pg_game_target_game_user_play_90_and_play_another_game.csv"
 
   def main(args: Array[String]) {
     val sc = setSparkEnv()
@@ -50,9 +52,15 @@ object Main {
     akkaLogger.warn("Mapping...", header)
 
     data.filter(_ != header).flatMap(_.split(",") match {
-      case Array(uniqueId, gender, gameId, theme, style, community, type1, type2, mobile, saving, revenue) => {
+      /*
+    case Array(uniqueId, gender, gameId, theme, style, community, type1, type2, mobile, saving, revenue) => {
+      val gameIdNoQuotes = gameId.replace("\"", "")
+      Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
+    }
+    */
+      case Array(pub_id, gender_mf, gender, gameId, theme, style, community, type1, type2, web_mobile, login_days, login_times, duration_sec, pay_times, saving, saving02) => {
         val gameIdNoQuotes = gameId.replace("\"", "")
-        Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
+        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
       case some => None
     })
