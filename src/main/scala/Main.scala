@@ -108,7 +108,10 @@ object Main {
     delete_out_path.!
 
     val formatedRatesAndPreds = ratesAndPreds.map {
-      case ((user, product), (rate, pred)) => user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
+      case ((user, product), (rate, pred)) =>
+        val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
+        akkaLogger.warn("output=" + output)
+        output
     }
 
     formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
