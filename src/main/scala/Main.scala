@@ -98,6 +98,7 @@ object Main {
     val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) => user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
     }
+
     formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
 
     val MSE = ratesAndPreds.map { case ((user, product), (r1, r2)) =>
@@ -109,7 +110,18 @@ object Main {
     akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
-  case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double)
+  case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
+
+    override def toString: String = {
+      s"Accuracy=$accuracy\n" +
+        s"Precision=$precision\n" +
+        s"Recall=$recall\n" +
+        s"Fallout=$fallout\n" +
+        s"Sensitivity=$sensitivity\n" +
+        s"Specificity=$specificity\n" +
+        s"F=$f"
+    }
+  }
 
   case class ConfusionMatrix(tp: Double, fp: Double, fn: Double, tn: Double)
 
@@ -119,7 +131,7 @@ object Main {
       case ((user, product), (r1, r2)) ⇒
         val pred = if (r2 >= 0.5) 1 else 0
         r1 match {
-          case 1 ⇒
+          case revenue if revenue > 0 ⇒
             if (pred == 1) ConfusionMatrix(1, 0, 0, 0)
             else ConfusionMatrix(0, 0, 1, 0)
           case 0 ⇒
