@@ -62,7 +62,9 @@ object Main {
         val gameIdNoQuotes = gameId.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
-      case some => None
+      case some =>
+        akkaLogger.warn("data error: {}", some.mkString(","))
+        None
     })
   }
 
