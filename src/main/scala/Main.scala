@@ -122,7 +122,7 @@ object Main {
     }.mean()
 
     akkaLogger.warn("--->Mean Squared Error = " + MSE)
-    akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
+    //akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
