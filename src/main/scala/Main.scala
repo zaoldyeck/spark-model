@@ -76,6 +76,8 @@ object Main {
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     val ratings: SparkRDD[Rating] = mappingData(trainingData)
     val ratingsTest: SparkRDD[Rating] = mappingData(testData)
+    akkaLogger.warn("Traing Data Size", ratings.count)
+    akkaLogger.warn("Test Data Size", ratingsTest.count)
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
