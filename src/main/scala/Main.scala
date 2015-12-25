@@ -16,8 +16,8 @@ object Main {
   val akkaLogger = Logger("！！This Is Important Message！！")
 
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_als_training.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_als_testing_inner.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
 
   def main(args: Array[String]) {
     val sc = setSparkEnv()
@@ -50,9 +50,9 @@ object Main {
     akkaLogger.warn("Mapping...", header)
 
     data.filter(_ != header).flatMap(_.split(",") match {
-      case Array(uniqueId, gameId, saving) => {
+      case Array(uniqueId, gender, gameId, theme, style, community, type1, type2, mobile, saving, revenue) => {
         val gameIdNoQuotes = gameId.replace("\"", "")
-        Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+        Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
       }
       case some => None
     })
@@ -64,15 +64,8 @@ object Main {
     akkaLogger.warn("Load into RDD...")
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
-
-
-    //val noheader_data = data.zipWithIndex().filter(_._2 > 0)
-    //val noheader_data = dropHeader(data)
-
     val ratings: SparkRDD[Rating] = mappingData(trainingData)
-    val ratings_test: SparkRDD[Rating] = mappingData(testData)
-
-    System.out.flush()
+    val ratingsTest: SparkRDD[Rating] = mappingData(testData)
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
@@ -82,7 +75,7 @@ object Main {
     val model = ALS.train(ratings, rank, numIterations, lambda)
 
     // Evaluate the model on rating data
-    val usersProducts = ratings_test.map { case Rating(user, product, rate) =>
+    val usersProducts = ratingsTest.map { case Rating(user, product, rate) =>
       (user, product)
     }
 
@@ -93,7 +86,7 @@ object Main {
       }
 
     akkaLogger.warn("Joining...")
-    val ratesAndPreds = ratings_test.map { case Rating(user, product, rate) =>
+    val ratesAndPreds = ratingsTest.map { case Rating(user, product, rate) =>
       ((user, product), rate)
     }.join(predictions).sortByKey() //ascending or descending
 
