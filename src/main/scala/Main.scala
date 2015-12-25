@@ -113,7 +113,8 @@ object Main {
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
 
     override def toString: String = {
-      s"Accuracy=$accuracy\n" +
+      s"\n" +
+        s"Accuracy=$accuracy\n" +
         s"Precision=$precision\n" +
         s"Recall=$recall\n" +
         s"Fallout=$fallout\n" +
@@ -128,13 +129,13 @@ object Main {
   def calConfusionMatrix(data: SparkRDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {
 
     val confusionMatrix = data.map {
-      case ((user, product), (r1, r2)) ⇒
-        val pred = if (r2 >= 0.5) 1 else 0
+      case ((user, product), (r1, r2)) =>
+        val pred = if (r2 > 0) 1 else 0
         r1 match {
-          case revenue if revenue > 0 ⇒
+          case revenue if revenue > 0 =>
             if (pred == 1) ConfusionMatrix(1, 0, 0, 0)
             else ConfusionMatrix(0, 0, 1, 0)
-          case 0 ⇒
+          case revenue if revenue <= 0 =>
             if (pred == 1) ConfusionMatrix(0, 1, 0, 0)
             else ConfusionMatrix(0, 0, 0, 1)
         }
