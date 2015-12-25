@@ -1,6 +1,7 @@
 /**
   * Created by zaoldyeck on 2015/12/25.
   */
+
 import akka.event.slf4j.Logger
 import org.apache.log4j.{Level, LogManager}
 import org.apache.spark.mllib.recommendation.ALS
@@ -15,8 +16,8 @@ object Main {
   val akkaLogger = Logger("！！This Is Important Message！！")
 
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_game_target_for_aws_trainging_gameid.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_game_target_for_aws_test_has_game_id.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_als_training.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_als_testing_inner.csv"
 
   def main(args: Array[String]) {
     val sc = setSparkEnv()
@@ -25,7 +26,6 @@ object Main {
     ExecAls(sc)
     sc.stop()
   }
-
 
   def setSparkEnv(): SparkContext = {
     val conf = new SparkConf().setAppName("SparkAls")
@@ -49,13 +49,12 @@ object Main {
     val header = data.first()
     akkaLogger.warn("Mapping...", header)
 
-    data.filter(_ != header).map(_.split(",") match {
-      case Array(pub_id, game_id, gender, theme, style, community, type1, type2, mobile, saving) => {
-        //printf("--->user: %s, item: %s, rate: %s\n", pub_id, game_id, saving)
-        val game_id_no_quotes = game_id.replace("\"", "")
-        Rating(pub_id.toInt, game_id_no_quotes.toInt, saving.toDouble)
+    data.filter(_ != header).flatMap(_.split(",") match {
+      case Array(uniqueId, gameId, saving) => {
+        val gameIdNoQuotes = gameId.replace("\"", "")
+        Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
-      case some => println(some); throw new Exception("-->Match error...")
+      case some => None
     })
   }
 
