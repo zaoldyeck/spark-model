@@ -18,8 +18,8 @@ object Main {
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/temp_pg_game_target_game_id_not_90.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/temp_pg_game_target_game_user_play_90_and_play_another_game.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
 
   def main(args: Array[String]) {
     val sc = setSparkEnv()
@@ -58,7 +58,7 @@ object Main {
       Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
     }
     */
-      case Array(pub_id, gender_mf, gender, game_id, theme, style, community, type1, type2, web_mobile, login_days, login_times, duration_sec, pay_times, saving, saving02) => {
+      case Array(pub_id, game_id, saving) => {
         val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
@@ -114,7 +114,6 @@ object Main {
     formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
 
     val MSE = ratesAndPreds.map { case ((user, product), (r1, r2)) =>
-      akkaLogger.warn("output=" + user + "\t" + product + "\t" + r1 + "\t" + "%02.4f" format r2)
       val err = (r1 - r2)
       err * err
     }.mean()
