@@ -60,7 +60,7 @@ object Main {
     */
       case Array(pub_id, game_id, saving) => {
         val gameIdNoQuotes = game_id.replace("\"", "")
-        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+        if (saving.toDouble == 0) None else Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
       case some =>
         akkaLogger.warn("data error:" + some.mkString(","))
