@@ -51,7 +51,7 @@ object Main {
     val header = data.first()
     akkaLogger.warn("Mapping...", header)
 
-    data.filter(_ != header).flatMap(_.split(",") match {
+    val sortedData = data.filter(_ != header).flatMap(_.split(",") match {
       /*
     case Array(uniqueId, gender, gameId, theme, style, community, type1, type2, mobile, saving, revenue) => {
       val gameIdNoQuotes = gameId.replace("\"", "")
@@ -60,12 +60,31 @@ object Main {
     */
       case Array(pub_id, game_id, saving) => {
         val gameIdNoQuotes = game_id.replace("\"", "")
-        if (saving.toDouble == 0) None else Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+        if (saving.toDouble <= 0) Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, -1))
+        else Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
       case some =>
         akkaLogger.warn("data error:" + some.mkString(","))
         None
-    })
+    }).sortBy(_.rating)
+
+    val sortedDataSize = sortedData.count
+
+    sortedData.zipWithIndex.map {
+      case (rating, index) =>
+        index match {
+          case i if i < sortedDataSize / 10 => Rating(rating.user, rating.product, 1)
+          case i if i < sortedDataSize / 10 * 2 => Rating(rating.user, rating.product, 2)
+          case i if i < sortedDataSize / 10 * 3 => Rating(rating.user, rating.product, 3)
+          case i if i < sortedDataSize / 10 * 4 => Rating(rating.user, rating.product, 4)
+          case i if i < sortedDataSize / 10 * 5 => Rating(rating.user, rating.product, 5)
+          case i if i < sortedDataSize / 10 * 6 => Rating(rating.user, rating.product, 6)
+          case i if i < sortedDataSize / 10 * 7 => Rating(rating.user, rating.product, 7)
+          case i if i < sortedDataSize / 10 * 8 => Rating(rating.user, rating.product, 8)
+          case i if i < sortedDataSize / 10 * 9 => Rating(rating.user, rating.product, 9)
+          case i if i < sortedDataSize => Rating(rating.user, rating.product, 10)
+        }
+    }
   }
 
   def mappingTestData(data: SparkRDD[String]): SparkRDD[Rating] = {
@@ -124,7 +143,9 @@ object Main {
 
     val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) =>
-        user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
+        val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
+        akkaLogger.warn("output=" + output)
+        output
     }
 
     formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
