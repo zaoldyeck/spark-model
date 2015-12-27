@@ -58,11 +58,10 @@ object Main {
       Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
     }
     */
-      case Array(pub_id, game_id, saving) => {
+      case Array(pub_id, game_id, saving) =>
         val gameIdNoQuotes = game_id.replace("\"", "")
         if (saving.toDouble <= 0) Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, -1))
         else Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
-      }
       case some =>
         akkaLogger.warn("data error:" + some.mkString(","))
         None
@@ -73,6 +72,7 @@ object Main {
     sortedData.zipWithIndex.map {
       case (rating, index) =>
         index match {
+          case i if rating.rating == (-1) => rating
           case i if i < sortedDataSize / 10 => Rating(rating.user, rating.product, 1)
           case i if i < sortedDataSize / 10 * 2 => Rating(rating.user, rating.product, 2)
           case i if i < sortedDataSize / 10 * 3 => Rating(rating.user, rating.product, 3)
