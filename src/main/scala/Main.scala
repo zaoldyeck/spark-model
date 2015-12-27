@@ -46,7 +46,7 @@ object Main {
 
   def isNumeric(input: String): Boolean = input.forall(_.isDigit)
 
-  def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
+  def mappingTrainingData(data: SparkRDD[String]): SparkRDD[Rating] = {
     //ratings.data of MovieLens
     val header = data.first()
     akkaLogger.warn("Mapping...", header)
@@ -68,14 +68,30 @@ object Main {
     })
   }
 
+  def mappingTestData(data: SparkRDD[String]): SparkRDD[Rating] = {
+    //ratings.data of MovieLens
+    val header = data.first()
+    akkaLogger.warn("Mapping...", header)
+
+    data.filter(_ != header).flatMap(_.split(",") match {
+      case Array(pub_id, game_id, saving) => {
+        val gameIdNoQuotes = game_id.replace("\"", "")
+        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+      }
+      case some =>
+        akkaLogger.warn("data error:" + some.mkString(","))
+        None
+    })
+  }
+
   def ExecAls(sc: SparkContext) = {
 
     // Load and parse the data
     akkaLogger.warn("Load into RDD...")
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
-    val ratings: SparkRDD[Rating] = mappingData(trainingData)
-    val ratingsTest: SparkRDD[Rating] = mappingData(testData)
+    val ratings: SparkRDD[Rating] = mappingTrainingData(trainingData)
+    val ratingsTest: SparkRDD[Rating] = mappingTestData(testData)
     akkaLogger.warn("Training Data Size=" + ratings.count)
     akkaLogger.warn("Test Data Size=" + ratingsTest.count)
 
@@ -153,6 +169,8 @@ object Main {
     val result = confusionMatrix.reduce((sum, row) ⇒ ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p = result.tp + result.fn
     val n = result.fp + result.tn
+    akkaLogger.warn("P=" + p)
+    akkaLogger.warn("N=" + n)
     val accuracy = (result.tp + result.tn) / (p + n)
     val precision = result.tp / (result.tp + result.fp)
     val recall = result.tp / p
