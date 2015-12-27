@@ -136,21 +136,18 @@ object Main {
     }
   }
 
-  case class ConfusionMatrix(tp: Double, fp: Double, fn: Double, tn: Double)
+  case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
 
   def calConfusionMatrix(data: SparkRDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {
-
     val confusionMatrix = data.map {
-      case ((user, product), (r1, r2)) =>
-        val pred = if (r2 > 0) 1 else 0
-        r1 match {
-          case revenue if revenue > 0 =>
-            if (pred == 1) ConfusionMatrix(1, 0, 0, 0)
-            else ConfusionMatrix(0, 0, 1, 0)
-          case revenue if revenue <= 0 =>
-            if (pred == 1) ConfusionMatrix(0, 1, 0, 0)
-            else ConfusionMatrix(0, 0, 0, 1)
-        }
+      case ((user, product), (fact, pred)) if fact > 0 && pred > 0 ⇒
+        ConfusionMatrix(tp = 1)
+      case ((user, product), (fact, pred)) if fact > 0 && pred <= 0 ⇒
+        ConfusionMatrix(fn = 1)
+      case ((user, product), (fact, pred)) if fact <= 0 && pred > 0 ⇒
+        ConfusionMatrix(fp = 1)
+      case _ ⇒
+        ConfusionMatrix(tn = 1)
     }
 
     val result = confusionMatrix.reduce((sum, row) ⇒ ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
