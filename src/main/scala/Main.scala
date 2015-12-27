@@ -67,22 +67,23 @@ object Main {
         None
     }).sortBy(_.rating)
 
-    val sortedDataSize = sortedData.count
+    val dataNotSavingSize = sortedData.filter(_.rating == (-1)).count
+    val dataHasSavingSize = sortedData.filter(_.rating != (-1)).count
 
     sortedData.zipWithIndex.map {
       case (rating, index) =>
         index match {
-          case i if rating.rating == (-1) => rating
-          case i if i < sortedDataSize / 10 => Rating(rating.user, rating.product, 1)
-          case i if i < sortedDataSize / 10 * 2 => Rating(rating.user, rating.product, 2)
-          case i if i < sortedDataSize / 10 * 3 => Rating(rating.user, rating.product, 3)
-          case i if i < sortedDataSize / 10 * 4 => Rating(rating.user, rating.product, 4)
-          case i if i < sortedDataSize / 10 * 5 => Rating(rating.user, rating.product, 5)
-          case i if i < sortedDataSize / 10 * 6 => Rating(rating.user, rating.product, 6)
-          case i if i < sortedDataSize / 10 * 7 => Rating(rating.user, rating.product, 7)
-          case i if i < sortedDataSize / 10 * 8 => Rating(rating.user, rating.product, 8)
-          case i if i < sortedDataSize / 10 * 9 => Rating(rating.user, rating.product, 9)
-          case i if i < sortedDataSize => Rating(rating.user, rating.product, 10)
+          case i if i < dataNotSavingSize => rating
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 => Rating(rating.user, rating.product, 1)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 2 => Rating(rating.user, rating.product, 2)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 3 => Rating(rating.user, rating.product, 3)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 4 => Rating(rating.user, rating.product, 4)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 5 => Rating(rating.user, rating.product, 5)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 6 => Rating(rating.user, rating.product, 6)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 7 => Rating(rating.user, rating.product, 7)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 8 => Rating(rating.user, rating.product, 8)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 9 => Rating(rating.user, rating.product, 9)
+          case i if i < dataNotSavingSize + dataHasSavingSize => Rating(rating.user, rating.product, 10)
         }
     }
   }
