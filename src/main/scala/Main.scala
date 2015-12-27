@@ -102,28 +102,25 @@ object Main {
       ((user, product), rate)
     }.join(predictions).sortByKey() //ascending or descending
 
-
     akkaLogger.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
     val delete_out_path = "hadoop fs -rm -r -f " + OUTPUT_HADOOP_PATH
     delete_out_path.!
 
-    //val formatedRatesAndPreds = ratesAndPreds.map {
-    ratesAndPreds.foreach {
+    val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) =>
-        val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
-        akkaLogger.warn("output=" + output)
-        output
+        user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
     }
 
-    //formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
+    formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
 
     val MSE = ratesAndPreds.map { case ((user, product), (r1, r2)) =>
+      akkaLogger.warn("output=" + user + "\t" + product + "\t" + r1 + "\t" + "%02.4f" format r2)
       val err = (r1 - r2)
       err * err
     }.mean()
 
     akkaLogger.warn("--->Mean Squared Error = " + MSE)
-    //akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
+    akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
