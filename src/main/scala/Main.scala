@@ -81,7 +81,7 @@ object Main {
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
-    val numIterations = 20
+    val numIterations = 100
     val lambda = 0.01 //normalization parameter
     akkaLogger.warn("Training...")
     val model = ALS.train(ratings, rank, numIterations, lambda)
@@ -92,10 +92,10 @@ object Main {
     }
 
     akkaLogger.warn("Predicting...")
-    val predictions =
-      model.predict(usersProducts).map { case Rating(user, product, rate) =>
-        ((user, product), rate)
-      }
+    val predictions = model.predict(usersProducts).map { case Rating(user, product, rate) =>
+      ((user, product), rate)
+    }
+    akkaLogger.warn("Predictions Size=" + predictions.count)
 
     akkaLogger.warn("Joining...")
     val ratesAndPreds = ratingsTest.map { case Rating(user, product, rate) =>
