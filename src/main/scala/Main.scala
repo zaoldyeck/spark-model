@@ -58,8 +58,8 @@ object Main {
       Some(Rating(uniqueId.toInt, gameIdNoQuotes.toInt, revenue.toDouble))
     }
     */
-      case Array(pub_id, gender_mf, gender, gameId, theme, style, community, type1, type2, web_mobile, login_days, login_times, duration_sec, pay_times, saving, saving02) => {
-        val gameIdNoQuotes = gameId.replace("\"", "")
+      case Array(pub_id, gender_mf, gender, game_id, theme, style, community, type1, type2, web_mobile, login_days, login_times, duration_sec, pay_times, saving, saving02) => {
+        val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       }
       case some =>
@@ -107,14 +107,15 @@ object Main {
     val delete_out_path = "hadoop fs -rm -r -f " + OUTPUT_HADOOP_PATH
     delete_out_path.!
 
-    val formatedRatesAndPreds = ratesAndPreds.map {
+    //val formatedRatesAndPreds = ratesAndPreds.map {
+    ratesAndPreds.foreach {
       case ((user, product), (rate, pred)) =>
         val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
         akkaLogger.warn("output=" + output)
         output
     }
 
-    formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
+    //formatedRatesAndPreds.saveAsTextFile(OUTPUT_HADOOP_PATH)
 
     val MSE = ratesAndPreds.map { case ((user, product), (r1, r2)) =>
       val err = (r1 - r2)
