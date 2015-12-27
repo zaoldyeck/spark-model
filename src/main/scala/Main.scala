@@ -80,8 +80,8 @@ object Main {
     akkaLogger.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
-    val rank = 10 //number of lantent factors
-    val numIterations = 20
+    val rank = 20 //number of lantent factors
+    val numIterations = 200
     val lambda = 0.01 //normalization parameter
     akkaLogger.warn("Training...")
     val model = ALS.train(ratings, rank, numIterations, lambda)
