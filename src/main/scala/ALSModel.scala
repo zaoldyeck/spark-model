@@ -6,6 +6,9 @@ import org.apache.spark.rdd.{RDD => SparkRDD}
 import org.slf4j.LoggerFactory
 import sys.process._
 
+/**
+  * Created by zaoldyeck on 2015/12/23.
+  */
 class ALSModel {
   val sparkLogger = LoggerFactory.getLogger(getClass)
   val akkaLogger = Logger("！！This Is Important Message！！")

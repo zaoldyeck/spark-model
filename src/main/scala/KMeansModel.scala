@@ -16,7 +16,7 @@ class KMeansModel {
   def run(sc: SparkContext): Unit = {
     val data: RDD[String] = sc.textFile(INPUT_PATH)
 
-    val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
+    val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache
 
     val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
 
