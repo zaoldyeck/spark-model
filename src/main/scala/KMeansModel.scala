@@ -3,15 +3,18 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.rdd.RDD
+import sys.process._
 
 /**
   * Created by zaoldyeck on 2015/12/27.
   */
 class KMeansModel {
+  val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
+  val OUTPUT_PATH = "hdfs://pubgame/user/vincent/kmeans"
   val akkaLogger = Logger("！！This Is Important Message！！")
 
   def run(sc: SparkContext): Unit = {
-    val data: RDD[String] = sc.textFile("hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv")
+    val data: RDD[String] = sc.textFile(INPUT_PATH)
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
@@ -28,6 +31,7 @@ class KMeansModel {
 
     //clusters.clusterCenters.foreach(vector => akkaLogger.warn(vector.toString))
     // Save and load model
+    "hdfs dfs -rm -r -f " + OUTPUT_PATH.!
     clusters.save(sc, "hdfs://pubgame/user/vincent/kmeans")
     //val sameModel = KMeansModel.load(sc, "myModelPath")
   }
