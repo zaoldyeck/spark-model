@@ -38,10 +38,10 @@ class KMeansModel {
     }
 
     // Save and load model
-    clusters.save(sc, OUTPUT_PATH)
-    result.saveAsTextFile(OUTPUT_PATH)
-
+    //clusters.save(sc, OUTPUT_PATH)
     //val sameModel = KMeansModel.load(sc, "myModelPath")
+
+    result.saveAsTextFile(OUTPUT_PATH)
   }
 }
 
