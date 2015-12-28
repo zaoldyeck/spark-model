@@ -31,8 +31,8 @@ class KMeansModel {
 
     clusters.clusterCenters.foreach(println)
     // Save and load model
-    "hadoop fs -rm -f -r " + OUTPUT_PATH.!
-    "hdfs dfs -mkdir" + OUTPUT_PATH.!
+    //"hadoop fs -rm -f -r " + OUTPUT_PATH.!
+    //"hdfs dfs -mkdir" + OUTPUT_PATH.!
     clusters.save(sc, OUTPUT_PATH)
     //val sameModel = KMeansModel.load(sc, "myModelPath")
   }
