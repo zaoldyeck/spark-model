@@ -1,6 +1,7 @@
 import akka.event.slf4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.KMeans
+import org.apache.spark.mllib.linalg
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.rdd.RDD
 import sys.process._
@@ -19,19 +20,23 @@ class KMeansModel {
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
     parsedData.foreach(println)
 
+    val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
+
     // Cluster the data into two classes using KMeans
     val numClusters = 10
     val numIterations = 20
-    val clusters = KMeans.train(parsedData, numClusters, numIterations)
+    val clusters = KMeans.train(parsedDataExceptId, numClusters, numIterations)
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
-    val WSSSE = clusters.computeCost(parsedData)
+    val WSSSE = clusters.computeCost(parsedDataExceptId)
     akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
-    clusters.predict(parsedData).foreach(println)
+    parsedData zip parsedDataExceptId map {
+      case (vectorWithId, vectorExceptId) => Vectors.dense(vectorExceptId.toArray :+ clusters.predict(vectorExceptId).toDouble)
+    } foreach println
 
     // Save and load model
     clusters.save(sc, OUTPUT_PATH)
