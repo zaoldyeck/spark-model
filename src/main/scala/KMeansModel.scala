@@ -1,4 +1,3 @@
-import org.slf4j.LoggerFactory
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
@@ -11,14 +10,13 @@ import sys.process._
 class KMeansModel {
   val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
   val OUTPUT_PATH = "hdfs://pubgame/user/vincent/kmeans"
-  val sparkLogger = LoggerFactory.getLogger(getClass)
 
   def run(sc: SparkContext): Unit = {
     val data: RDD[String] = sc.textFile(INPUT_PATH)
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
-    sparkLogger.warn("Print Input Data")
+    println("Print Input Data")
     parsedData.foreach(println)
 
     val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
@@ -30,12 +28,12 @@ class KMeansModel {
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
     val WSSSE = clusters.computeCost(parsedDataExceptId)
-    sparkLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
+    println("Within Set Sum of Squared Errors = " + WSSSE)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
-    sparkLogger.warn("Print Output Data")
+    println("Print Output Data")
     parsedData zip parsedDataExceptId map {
       case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ clusters.predict(vectorExceptId).toDouble)
     } foreach println
