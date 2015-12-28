@@ -28,9 +28,10 @@ class KMeansModel {
     val WSSSE = clusters.computeCost(parsedData)
     akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
-    clusters.clusterCenters.foreach(println)
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
+
+    clusters.predict(parsedData).foreach(print)
 
     // Save and load model
     clusters.save(sc, OUTPUT_PATH)
