@@ -18,7 +18,7 @@ class KMeansModel {
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
-    sparkLogger.debug("Print Input Data")
+    sparkLogger.warn("Print Input Data")
     parsedData.foreach(println)
 
     val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
@@ -35,7 +35,7 @@ class KMeansModel {
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
-    sparkLogger.debug("Print Output Data")
+    sparkLogger.warn("Print Output Data")
     parsedData zip parsedDataExceptId map {
       case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ clusters.predict(vectorExceptId).toDouble)
     } foreach println
