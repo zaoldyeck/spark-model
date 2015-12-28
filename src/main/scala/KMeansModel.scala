@@ -15,6 +15,8 @@ class KMeansModel {
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
+    parsedData.foreach(vector=>akkaLogger.warn(vector.toString))
+
     // Cluster the data into two classes using KMeans
     val numClusters = 2
     val numIterations = 20
