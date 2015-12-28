@@ -22,11 +22,11 @@ class KMeansModel {
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
     val WSSSE = clusters.computeCost(parsedData)
-    println("Within Set Sum of Squared Errors = " + WSSSE)
+    akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
     clusters.clusterCenters.foreach(vector => akkaLogger.warn(vector.toString))
     // Save and load model
-    //clusters.save(sc, "myModelPath")
+    clusters.save(sc, "hdfs://pubgame/user/vincent/kmeans")
     //val sameModel = KMeansModel.load(sc, "myModelPath")
   }
 }
