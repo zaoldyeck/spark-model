@@ -20,7 +20,7 @@ class KMeansModel {
     parsedData.foreach(println)
 
     // Cluster the data into two classes using KMeans
-    val numClusters = 2
+    val numClusters = 10
     val numIterations = 20
     val clusters = KMeans.train(parsedData, numClusters, numIterations)
 
@@ -31,7 +31,7 @@ class KMeansModel {
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
-    clusters.predict(parsedData).foreach(print)
+    clusters.predict(parsedData).foreach(println)
 
     // Save and load model
     clusters.save(sc, OUTPUT_PATH)
