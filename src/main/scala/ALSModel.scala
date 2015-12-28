@@ -101,7 +101,7 @@ class ALSModel {
     }.join(predictions).sortByKey() //ascending or descending
 
     akkaLogger.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
-    val delete_out_path = "hadoop fs -rm -r -f " + OUTPUT_HADOOP_PATH
+    val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_HADOOP_PATH
     delete_out_path.!
 
     val formatedRatesAndPreds = ratesAndPreds.map {
