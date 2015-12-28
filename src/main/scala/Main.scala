@@ -12,7 +12,8 @@ object Main {
     sc.setCheckpointDir("checkpoint")
     LogManager.getRootLogger.setLevel(Level.WARN)
     //new ALSModel().run(sc)
-    new KMeansModel().run(sc)
+    //new KMeansModel().run(sc)
+    new LDAModel().run(sc)
     sc.stop()
   }
 
