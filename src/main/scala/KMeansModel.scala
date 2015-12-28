@@ -18,8 +18,6 @@ class KMeansModel {
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
-    parsedData.foreach(println)
-
     // Cluster the data into two classes using KMeans
     val numClusters = 2
     val numIterations = 20
@@ -30,9 +28,10 @@ class KMeansModel {
     akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
     clusters.clusterCenters.foreach(println)
+
     // Save and load model
-    //"hadoop fs -rm -f -r " + OUTPUT_PATH.!
-    //"hdfs dfs -mkdir" + OUTPUT_PATH.!
+    val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
+    s.!
     clusters.save(sc, OUTPUT_PATH)
     //val sameModel = KMeansModel.load(sc, "myModelPath")
   }
