@@ -17,7 +17,7 @@ class KMeansModel {
     val data: RDD[String] = sc.textFile(INPUT_PATH)
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
-    parsedData.foreach(vector => akkaLogger.warn(vector.toString))
+    parsedData.foreach(println)
 
     // Cluster the data into two classes using KMeans
     val numClusters = 2
@@ -28,8 +28,7 @@ class KMeansModel {
     val WSSSE = clusters.computeCost(parsedData)
     akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
-    clusters.clusterCenters.foreach(vector => akkaLogger.warn(vector.toString))
-
+    clusters.clusterCenters.foreach(println)
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
