@@ -31,8 +31,8 @@ class KMeansModel {
 
     //clusters.clusterCenters.foreach(vector => akkaLogger.warn(vector.toString))
     // Save and load model
-    "hadoop fs -rm -f -r " + OUTPUT_PATH.!
-    clusters.save(sc, "hdfs://pubgame/user/vincent/kmeans")
+    "hadoop fs -rm -r -f " + OUTPUT_PATH.!
+    clusters.save(sc, OUTPUT_PATH)
     //val sameModel = KMeansModel.load(sc, "myModelPath")
   }
 }
