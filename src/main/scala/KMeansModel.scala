@@ -21,8 +21,8 @@ class KMeansModel {
     val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
 
     // Cluster the data into two classes using KMeans
-    val numClusters = 10
-    val numIterations = 20
+    val numClusters = 20
+    val numIterations = 100
     val clusters = KMeans.train(parsedDataExceptId, numClusters, numIterations)
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
