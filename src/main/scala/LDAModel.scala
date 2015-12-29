@@ -32,6 +32,8 @@ class LDAModel {
       println()
     }
 
+    ldaModel.
+
     // Save and load model.
     //ldaModel.save(sc, "myLDAModel")
     //val sameModel = DistributedLDAModel.load(sc, "myLDAModel")

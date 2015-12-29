@@ -75,17 +75,18 @@ class ALSModel {
     akkaLogger.warn("Load into RDD...")
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
-    val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
+    //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
+    val ratings: SparkRDD[Rating] = mappingData(trainingData)
     val ratingsTest: SparkRDD[Rating] = mappingData(testData)
     akkaLogger.warn("Training Data Size=" + ratings.count)
     akkaLogger.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
-    val numIterations = 100
+    val numIterations = 5
     val lambda = 0.01 //normalization parameter
     akkaLogger.warn("Training...")
-    val model = ALS.train(ratings, rank, numIterations, lambda)
+    val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, 1.0)
 
     // Evaluate the model on rating data
     val usersProducts = ratingsTest.map { case Rating(user, product, rate) =>
