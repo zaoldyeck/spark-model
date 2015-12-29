@@ -1,4 +1,3 @@
-import akka.event.slf4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.KMeans
 import org.apache.spark.mllib.linalg.Vectors
@@ -11,7 +10,6 @@ import sys.process._
 class KMeansModel {
   val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
   val OUTPUT_PATH = "hdfs://pubgame/user/vincent/kmeans"
-  val akkaLogger = Logger("！！This Is Important Message！！")
 
   def run(sc: SparkContext): Unit = {
     val data: RDD[String] = sc.textFile(INPUT_PATH)
@@ -27,12 +25,12 @@ class KMeansModel {
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
     val WSSSE = clusters.computeCost(parsedDataExceptId)
-    akkaLogger.warn("Within Set Sum of Squared Errors = " + WSSSE)
+    Logger.log.warn("Within Set Sum of Squared Errors = " + WSSSE)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
-    akkaLogger.warn("Output Data")
+    Logger.log.warn("Output Data")
     val result = parsedData zip parsedDataExceptId map {
       case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ clusters.predict(vectorExceptId).toDouble)
     }

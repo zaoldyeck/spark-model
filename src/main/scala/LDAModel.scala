@@ -1,4 +1,3 @@
-import akka.event.slf4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.LDA
 import org.apache.spark.mllib.linalg.Vectors
@@ -9,7 +8,6 @@ import org.apache.spark.mllib.linalg.Vectors
 class LDAModel {
   val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
   val OUTPUT_PATH = "hdfs://pubgame/user/vincent/lda"
-  val akkaLogger = Logger("！！This Is Important Message！！")
 
   def run(sc: SparkContext): Unit = {
     // Load and parse the data
