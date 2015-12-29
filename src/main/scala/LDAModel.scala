@@ -29,10 +29,8 @@ class LDAModel {
       for (word <- Range(0, ldaModel.vocabSize)) {
         print(" " + topics(word, topic))
       }
-      println()
+      println
     }
-
-    ldaModel.
 
     // Save and load model.
     //ldaModel.save(sc, "myLDAModel")
