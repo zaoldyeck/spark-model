@@ -8,7 +8,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel(log: Logger) {
+class ALSModel(log: Logger) extends Serializable {
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
