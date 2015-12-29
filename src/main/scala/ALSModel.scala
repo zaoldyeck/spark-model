@@ -39,7 +39,7 @@ class ALSModel {
         val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       case some =>
-        akkaLogger.warn("data error:" + some.mkString(","))
+        //akkaLogger.warn("data error:" + some.mkString(","))
         None
     })
   }
