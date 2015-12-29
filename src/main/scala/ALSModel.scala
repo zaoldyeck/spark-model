@@ -32,8 +32,7 @@ class ALSModel {
 
   def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
     //ratings.data of MovieLens
-    val header = data.first()
-    akkaLogger.warn("Mapping...", header)
+    val header = data.first
 
     data.filter(_ != header).flatMap(_.split(",") match {
       case Array(pub_id, game_id, saving) =>
@@ -76,6 +75,8 @@ class ALSModel {
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
+
+    akkaLogger.warn("Mapping...")
     val ratings: SparkRDD[Rating] = mappingData(trainingData)
     val ratingsTest: SparkRDD[Rating] = mappingData(testData)
     akkaLogger.warn("Training Data Size=" + ratings.count)
