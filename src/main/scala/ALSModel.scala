@@ -1,18 +1,14 @@
-import akka.event.slf4j.Logger
-import org.apache.spark.mllib.recommendation.ALS
-import org.apache.spark.mllib.recommendation.Rating
+import org.apache.log4j.Logger
 import org.apache.spark._
+import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.{RDD => SparkRDD}
-import org.slf4j.LoggerFactory
-import sys.process._
+
+import scala.sys.process._
 
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel {
-  val sparkLogger = LoggerFactory.getLogger(getClass)
-  val akkaLogger = Logger("！！This Is Important Message！！")
-
+class ALSModel(log: Logger) {
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
@@ -33,13 +29,14 @@ class ALSModel {
   def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
     //ratings.data of MovieLens
     val header = data.first
+    log.warn("Mapping...")
 
     data.filter(_ != header).flatMap(_.split(",") match {
       case Array(pub_id, game_id, saving) =>
         val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       case some =>
-        //akkaLogger.warn("data error:" + some.mkString(","))
+        log.warn("data error:" + some.mkString(","))
         None
     })
   }
@@ -71,22 +68,21 @@ class ALSModel {
   def run(sc: SparkContext) = {
 
     // Load and parse the data
-    akkaLogger.warn("Load into RDD...")
+    log.warn("Load into RDD...")
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
 
-    akkaLogger.warn("Mapping...")
     val ratings: SparkRDD[Rating] = mappingData(trainingData)
     val ratingsTest: SparkRDD[Rating] = mappingData(testData)
-    akkaLogger.warn("Training Data Size=" + ratings.count)
-    akkaLogger.warn("Test Data Size=" + ratingsTest.count)
+    log.warn("Training Data Size=" + ratings.count)
+    log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
     val numIterations = 5
     val lambda = 0.01 //normalization parameter
-    akkaLogger.warn("Training...")
+    log.warn("Training...")
     val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, 1.0)
 
     // Evaluate the model on rating data
@@ -94,25 +90,25 @@ class ALSModel {
       (user, product)
     }
 
-    akkaLogger.warn("Predicting...")
+    log.warn("Predicting...")
     val predictions = model.predict(usersProducts).map { case Rating(user, product, rate) =>
       ((user, product), rate)
     }
-    akkaLogger.warn("Predictions Size=" + predictions.count)
+    log.warn("Predictions Size=" + predictions.count)
 
-    akkaLogger.warn("Joining...")
+    log.warn("Joining...")
     val ratesAndPreds = ratingsTest.map { case Rating(user, product, rate) =>
       ((user, product), rate)
     }.join(predictions).sortByKey() //ascending or descending
 
-    akkaLogger.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
+    log.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
     val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_HADOOP_PATH
     delete_out_path.!
 
     val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) =>
         val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
-        akkaLogger.warn("output=" + output)
+        log.warn("output=" + output)
         output
     }
 
@@ -123,8 +119,8 @@ class ALSModel {
       err * err
     }.mean()
 
-    akkaLogger.warn("--->Mean Squared Error = " + MSE)
-    akkaLogger.warn(calConfusionMatrix(ratesAndPreds).toString)
+    log.warn("--->Mean Squared Error = " + MSE)
+    log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
@@ -158,8 +154,8 @@ class ALSModel {
     val result = confusionMatrix.reduce((sum, row) ⇒ ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p = result.tp + result.fn
     val n = result.fp + result.tn
-    akkaLogger.warn("P=" + p)
-    akkaLogger.warn("N=" + n)
+    log.warn("P=" + p)
+    log.warn("N=" + n)
     val accuracy = (result.tp + result.tn) / (p + n)
     val precision = result.tp / (result.tp + result.fp)
     val recall = result.tp / p
