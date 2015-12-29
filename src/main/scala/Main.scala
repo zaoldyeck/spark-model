@@ -11,8 +11,9 @@ object Main {
     val sc = setSparkEnv()
     sc.setCheckpointDir("checkpoint")
     //new ALSModel().run(sc)
-    new KMeansModel().run(sc)
+    //new KMeansModel().run(sc)
     //new LDAModel().run(sc)
+    new TestALSModel().run(sc)
     sc.stop()
   }
 

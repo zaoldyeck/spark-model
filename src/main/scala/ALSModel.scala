@@ -7,62 +7,12 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel extends Serializable {
+class ALSModel {
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
   private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
   private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
-
-  def dropHeader(data: SparkRDD[String]): SparkRDD[String] = {
-    data.mapPartitionsWithIndex((idx, lines) => {
-      if (idx == 0) {
-        lines.drop(1)
-      }
-      lines
-    })
-  }
-
-  def isNumeric(input: String): Boolean = input.forall(_.isDigit)
-
-  def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
-    //ratings.data of MovieLens
-    val header = data.first
-    Logger.log.warn("Mapping...")
-
-    data.filter(_ != header).flatMap(_.split(",") match {
-      case Array(pub_id, game_id, saving) =>
-        val gameIdNoQuotes = game_id.replace("\"", "")
-        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
-      case some =>
-        Logger.log.warn("data error:" + some.mkString(","))
-        None
-    })
-  }
-
-  def ratingData(data: SparkRDD[Rating]): SparkRDD[Rating] = {
-    val sortedData = data.sortBy(_.rating)
-
-    val dataNotSavingSize = sortedData.filter(_.rating <= 0).count
-    val dataHasSavingSize = sortedData.filter(_.rating > 0).count
-
-    sortedData.zipWithIndex.map {
-      case (rating, index) =>
-        index match {
-          case i if i < dataNotSavingSize => Rating(rating.user, rating.product, -1)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 => Rating(rating.user, rating.product, 1)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 2 => Rating(rating.user, rating.product, 2)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 3 => Rating(rating.user, rating.product, 3)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 4 => Rating(rating.user, rating.product, 4)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 5 => Rating(rating.user, rating.product, 5)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 6 => Rating(rating.user, rating.product, 6)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 7 => Rating(rating.user, rating.product, 7)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 8 => Rating(rating.user, rating.product, 8)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 9 => Rating(rating.user, rating.product, 9)
-          case i if i < dataNotSavingSize + dataHasSavingSize => Rating(rating.user, rating.product, 10)
-        }
-    }
-  }
 
   def run(sc: SparkContext) = {
 
@@ -120,6 +70,56 @@ class ALSModel extends Serializable {
 
     Logger.log.warn("--->Mean Squared Error = " + MSE)
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
+  }
+
+  def dropHeader(data: SparkRDD[String]): SparkRDD[String] = {
+    data.mapPartitionsWithIndex((idx, lines) => {
+      if (idx == 0) {
+        lines.drop(1)
+      }
+      lines
+    })
+  }
+
+  def isNumeric(input: String): Boolean = input.forall(_.isDigit)
+
+  def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
+    //ratings.data of MovieLens
+    val header = data.first
+    Logger.log.warn("Mapping...")
+
+    data.filter(_ != header).flatMap(_.split(",") match {
+      case Array(pub_id, game_id, saving) =>
+        val gameIdNoQuotes = game_id.replace("\"", "")
+        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+      case some =>
+        Logger.log.warn("data error:" + some.mkString(","))
+        None
+    })
+  }
+
+  def ratingData(data: SparkRDD[Rating]): SparkRDD[Rating] = {
+    val sortedData = data.sortBy(_.rating)
+
+    val dataNotSavingSize = sortedData.filter(_.rating <= 0).count
+    val dataHasSavingSize = sortedData.filter(_.rating > 0).count
+
+    sortedData.zipWithIndex.map {
+      case (rating, index) =>
+        index match {
+          case i if i < dataNotSavingSize => Rating(rating.user, rating.product, -1)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 => Rating(rating.user, rating.product, 1)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 2 => Rating(rating.user, rating.product, 2)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 3 => Rating(rating.user, rating.product, 3)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 4 => Rating(rating.user, rating.product, 4)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 5 => Rating(rating.user, rating.product, 5)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 6 => Rating(rating.user, rating.product, 6)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 7 => Rating(rating.user, rating.product, 7)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 8 => Rating(rating.user, rating.product, 8)
+          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 9 => Rating(rating.user, rating.product, 9)
+          case i if i < dataNotSavingSize + dataHasSavingSize => Rating(rating.user, rating.product, 10)
+        }
+    }
   }
 
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {

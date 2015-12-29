@@ -27,7 +27,7 @@ class KMeansModel {
     }
 
     val bestModel = models.map(model => (model, model.computeCost(parsedDataExceptId))).minBy(_._2)
-    Logger.log.warn("Best Number of Cluster is = " + bestModel._1.k)
+    Logger.log.warn("Best Number of Cluster is = " + bestModel._1.k) //112
     Logger.log.warn("Within Set Sum of Squared Errors = " + bestModel._2)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
