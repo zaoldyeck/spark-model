@@ -19,20 +19,23 @@ class KMeansModel {
     val parsedDataExceptId = parsedData.map(vector => Vectors.dense(vector.toArray.drop(1)))
 
     // Cluster the data into two classes using KMeans
-    val numClusters = 5
-    val numIterations = 100
-    val clusters = KMeans.train(parsedDataExceptId, numClusters, numIterations)
+    val numIterations = 20
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
-    val WSSSE = clusters.computeCost(parsedDataExceptId)
-    Logger.log.warn("Within Set Sum of Squared Errors = " + WSSSE)
+    val models = for (numClusters <- 2 to 200) yield {
+      KMeans.train(parsedDataExceptId, numClusters, numIterations)
+    }
+
+    val bestModel = models.map(model => (model, model.predict(parsedDataExceptId))).minBy(_._2)
+    Logger.log.warn("Best Number of Cluster is = " + bestModel._2)
+    Logger.log.warn("Within Set Sum of Squared Errors = " + bestModel._2)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
     s.!
 
     Logger.log.warn("Output Data")
     val result = parsedData zip parsedDataExceptId map {
-      case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ clusters.predict(vectorExceptId).toDouble)
+      case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ bestModel._1.predict(vectorExceptId).toDouble)
     }
 
     // Save and load model
