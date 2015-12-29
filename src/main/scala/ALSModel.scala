@@ -1,4 +1,3 @@
-import org.apache.log4j.Logger
 import org.apache.spark._
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.{RDD => SparkRDD}
@@ -8,7 +7,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel(log: Logger) extends Serializable {
+class ALSModel extends Serializable {
   private val OUTPUT_HADOOP_PATH = "hdfs://pubgame/user/vincent/spark-als"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_with_gd_for_model_with_revenue_testing_inner.csv"
@@ -29,14 +28,14 @@ class ALSModel(log: Logger) extends Serializable {
   def mappingData(data: SparkRDD[String]): SparkRDD[Rating] = {
     //ratings.data of MovieLens
     val header = data.first
-    log.warn("Mapping...")
+    Logger.log.warn("Mapping...")
 
     data.filter(_ != header).flatMap(_.split(",") match {
       case Array(pub_id, game_id, saving) =>
         val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
       case some =>
-        log.warn("data error:" + some.mkString(","))
+        Logger.log.warn("data error:" + some.mkString(","))
         None
     })
   }
@@ -68,21 +67,21 @@ class ALSModel(log: Logger) extends Serializable {
   def run(sc: SparkContext) = {
 
     // Load and parse the data
-    log.warn("Load into RDD...")
+    Logger.log.warn("Load into RDD...")
     val trainingData: SparkRDD[String] = sc.textFile(TRAINING_DATA_IN_PATH)
     val testData: SparkRDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
 
     val ratings: SparkRDD[Rating] = mappingData(trainingData)
     val ratingsTest: SparkRDD[Rating] = mappingData(testData)
-    log.warn("Training Data Size=" + ratings.count)
-    log.warn("Test Data Size=" + ratingsTest.count)
+    Logger.log.warn("Training Data Size=" + ratings.count)
+    Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
     val numIterations = 5
     val lambda = 0.01 //normalization parameter
-    log.warn("Training...")
+    Logger.log.warn("Training...")
     val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, 1.0)
 
     // Evaluate the model on rating data
@@ -90,25 +89,25 @@ class ALSModel(log: Logger) extends Serializable {
       (user, product)
     }
 
-    log.warn("Predicting...")
+    Logger.log.warn("Predicting...")
     val predictions = model.predict(usersProducts).map { case Rating(user, product, rate) =>
       ((user, product), rate)
     }
-    log.warn("Predictions Size=" + predictions.count)
+    Logger.log.warn("Predictions Size=" + predictions.count)
 
-    log.warn("Joining...")
+    Logger.log.warn("Joining...")
     val ratesAndPreds = ratingsTest.map { case Rating(user, product, rate) =>
       ((user, product), rate)
     }.join(predictions).sortByKey() //ascending or descending
 
-    log.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
+    Logger.log.warn("Try to delete path: [" + OUTPUT_HADOOP_PATH + "]")
     val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_HADOOP_PATH
     delete_out_path.!
 
     val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) =>
         val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
-        log.warn("output=" + output)
+        Logger.log.warn("output=" + output)
         output
     }
 
@@ -119,8 +118,8 @@ class ALSModel(log: Logger) extends Serializable {
       err * err
     }.mean()
 
-    log.warn("--->Mean Squared Error = " + MSE)
-    log.warn(calConfusionMatrix(ratesAndPreds).toString)
+    Logger.log.warn("--->Mean Squared Error = " + MSE)
+    Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
@@ -154,8 +153,8 @@ class ALSModel(log: Logger) extends Serializable {
     val result = confusionMatrix.reduce((sum, row) ⇒ ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p = result.tp + result.fn
     val n = result.fp + result.tn
-    log.warn("P=" + p)
-    log.warn("N=" + n)
+    Logger.log.warn("P=" + p)
+    Logger.log.warn("N=" + n)
     val accuracy = (result.tp + result.tn) / (p + n)
     val precision = result.tp / (result.tp + result.fp)
     val recall = result.tp / p
