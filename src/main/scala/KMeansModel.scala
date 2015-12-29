@@ -26,7 +26,7 @@ class KMeansModel {
       KMeans.train(parsedDataExceptId, numClusters, numIterations)
     }
 
-    val bestModel = models.map(model => (model, model.predict(parsedDataExceptId))).minBy(_._2)
+    val bestModel = models.map(model => (model, model.computeCost(parsedDataExceptId))).minBy(_._2)
     Logger.log.warn("Best Number of Cluster is = " + bestModel._2)
     Logger.log.warn("Within Set Sum of Squared Errors = " + bestModel._2)
 
