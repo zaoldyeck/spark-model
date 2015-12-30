@@ -114,13 +114,13 @@ class ALSModel {
   case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
     override def toString: String = {
       s"\n" +
-        s"Accuracy=$accuracy\n" +
-        s"Precision=$precision\n" +
-        s"Recall=$recall\n" +
-        s"Fallout=$fallout\n" +
-        s"Sensitivity=$sensitivity\n" +
-        s"Specificity=$specificity\n" +
-        s"F=$f"
+        s"Accuracy = $accuracy\n" +
+        s"Precision = $precision\n" +
+        s"Recall = $recall\n" +
+        s"Fallout = $fallout\n" +
+        s"Sensitivity = $sensitivity\n" +
+        s"Specificity = $specificity\n" +
+        s"F = $f"
     }
   }
 

@@ -2,6 +2,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
+import scala.sys.process._
+
 /**
   * Created by zaoldyeck on 2015/12/30.
   */
