@@ -25,7 +25,6 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn("Training Data Size=" + ratings.count)
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
-    /*
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
     val numIterations = 5
@@ -71,11 +70,10 @@ class ALSModel2 extends ALSModel {
 
     Logger.log.warn("--->Mean Squared Error = " + MSE)
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
-    */
   }
 
   private def ratingData(data: RDD[String]): RDD[Rating] = {
-    Logger.log.warn("Mapping...")
+    Logger.log.warn("Rating...")
 
     case class Data(pubId: Int, gameId: Int, loginDays: Int, saving: Int)
     val header: String = data.first
@@ -113,9 +111,9 @@ class ALSModel2 extends ALSModel {
         }
 
         val result = Rating(row.pubId, row.gameId, (loginScore.toDouble / 5 * 1 + savingScore.toDouble / 5 * 4).toInt)
-        Logger.log.warn("source = " + row)
-        Logger.log.warn("result = " + result)
-        Logger.log.warn("===")
+        //Logger.log.warn("source = " + row)
+        //Logger.log.warn("result = " + result)
+        //Logger.log.warn("===")
         result
     }
   }
