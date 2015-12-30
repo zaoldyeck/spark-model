@@ -57,7 +57,7 @@ class ALSModel2 extends ALSModel {
     val formatedRatesAndPreds = ratesAndPreds.map {
       case ((user, product), (rate, pred)) =>
         val output = user + "\t" + product + "\t" + rate + "\t" + "%02.4f" format pred
-        Logger.log.warn("output=" + output)
+        //Logger.log.warn("output=" + output)
         output
     }
     formatedRatesAndPreds.saveAsTextFile(OUTPUT_PATH)
