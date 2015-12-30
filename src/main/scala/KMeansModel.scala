@@ -8,8 +8,8 @@ import sys.process._
   * Created by zaoldyeck on 2015/12/27.
   */
 class KMeansModel {
-  val INPUT_PATH = "efunfun_android_prod_game_for_kmeans.csv"
-  val OUTPUT_PATH = "kmeans"
+  val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
+  val OUTPUT_PATH = "hdfs://pubgame/user/vincent/kmeans"
 
   def run(sc: SparkContext): Unit = {
     val data: RDD[String] = sc.textFile(INPUT_PATH)
@@ -26,8 +26,12 @@ class KMeansModel {
       KMeans.train(parsedDataExceptId, numClusters, numIterations)
     }
 
-    val bestModel = models.map(model => (model, model.computeCost(parsedDataExceptId))).minBy(_._2)
-    Logger.log.warn("Best Number of Cluster is = " + bestModel._1.k) //112
+    val bestModel = models.map(model => {
+      val cost: Double = model.computeCost(parsedDataExceptId)
+      Logger.log.warn(s"When k = ${model.k}, cost = $cost")
+      (model, cost)
+    }).minBy(_._2)
+    Logger.log.warn("Best Number of Cluster = " + bestModel._1.k) //112
     Logger.log.warn("Within Set Sum of Squared Errors = " + bestModel._2)
 
     val s = "hadoop fs -rm -f -r " + OUTPUT_PATH
