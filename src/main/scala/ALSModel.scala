@@ -85,7 +85,7 @@ class ALSModel {
     })
   }
 
-  def ratingData(data: RDD[Rating]): RDD[Rating] = {
+  private def ratingData(data: RDD[Rating]): RDD[Rating] = {
     val sortedData = data.sortBy(_.rating)
 
     val dataNotSavingSize = sortedData.filter(_.rating <= 0).count

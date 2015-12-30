@@ -72,7 +72,7 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
-  def ratingData(data: RDD[String]): RDD[Rating] = {
+  private def ratingData(data: RDD[String]): RDD[Rating] = {
     Logger.log.warn("Mapping...")
 
     case class Data(pubId: Int, gameId: Int, loginDays: Int, saving: Int)
