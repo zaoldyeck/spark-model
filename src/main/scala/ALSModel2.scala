@@ -25,6 +25,7 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn("Training Data Size=" + ratings.count)
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
+    /*
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
     val numIterations = 5
@@ -70,6 +71,7 @@ class ALSModel2 extends ALSModel {
 
     Logger.log.warn("--->Mean Squared Error = " + MSE)
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
+    */
   }
 
   private def ratingData(data: RDD[String]): RDD[Rating] = {
