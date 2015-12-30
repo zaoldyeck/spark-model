@@ -25,7 +25,6 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn("Training Data Size=" + ratings.count)
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
-    /*
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
     val numIterations = 5
@@ -71,7 +70,6 @@ class ALSModel2 extends ALSModel {
 
     Logger.log.warn("--->Mean Squared Error = " + MSE)
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
-    */
   }
 
   private def ratingData(data: RDD[String]): RDD[Rating] = {
@@ -86,29 +84,29 @@ class ALSModel2 extends ALSModel {
     val partSize = dataSize / 5
     val sortByLoginDays = parseData.sortBy(_.loginDays)
     val sortBySaving = parseData.sortBy(_.saving)
-    val loginDaysLevel1 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize).first._1.loginDays
-    val loginDaysLevel2 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 2).first._1.loginDays
-    val loginDaysLevel3 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 3).first._1.loginDays
-    val loginDaysLevel4 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 4).first._1.loginDays
-    val savingLevel1 = sortBySaving.zipWithIndex.filter(_._2 == partSize).first._1.saving
-    val savingLevel2 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 2).first._1.saving
-    val savingLevel3 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 3).first._1.saving
-    val savingLevel4 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 4).first._1.saving
+    val loginDaysLevel1 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize - 1).first._1.loginDays
+    val loginDaysLevel2 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 2 - 1).first._1.loginDays
+    val loginDaysLevel3 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 3 - 1).first._1.loginDays
+    val loginDaysLevel4 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 4 - 1).first._1.loginDays
+    val savingLevel1 = sortBySaving.zipWithIndex.filter(_._2 == partSize - 1).first._1.saving
+    val savingLevel2 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 2 - 1).first._1.saving
+    val savingLevel3 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 3 - 1).first._1.saving
+    val savingLevel4 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 4 - 1).first._1.saving
 
     parseData map {
       case row =>
         val loginScore = row.loginDays match {
-          case days if days < loginDaysLevel1 => 1
-          case days if days < loginDaysLevel2 => 2
-          case days if days < loginDaysLevel3 => 3
-          case days if days < loginDaysLevel4 => 4
+          case days if days <= loginDaysLevel1 => 1
+          case days if days <= loginDaysLevel2 => 2
+          case days if days <= loginDaysLevel3 => 3
+          case days if days <= loginDaysLevel4 => 4
           case _ => 5
         }
         val savingScore = row.saving match {
-          case saving if saving < savingLevel1 => 1
-          case saving if saving < savingLevel2 => 2
-          case saving if saving < savingLevel3 => 3
-          case saving if saving < savingLevel4 => 4
+          case saving if saving <= savingLevel1 => 1
+          case saving if saving <= savingLevel2 => 2
+          case saving if saving <= savingLevel3 => 3
+          case saving if saving <= savingLevel4 => 4
           case _ => 5
         }
         val result = Rating(row.pubId, row.gameId, loginScore / 5 * 1 + savingScore / 5 * 4)
