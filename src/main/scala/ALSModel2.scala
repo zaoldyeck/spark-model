@@ -81,17 +81,17 @@ class ALSModel2 extends ALSModel {
       case Array(pub_id, game_id, login_days, saving) => Data(pub_id.toInt, game_id.toInt, login_days.toInt, saving.toInt)
     })
     val dataSize = parseData.count
-    val partSize = dataSize / 5
-    val sortByLoginDays = parseData.sortBy(_.loginDays)
-    val sortBySaving = parseData.sortBy(_.saving)
-    val loginDaysLevel1 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize - 1).first._1.loginDays
-    val loginDaysLevel2 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 2 - 1).first._1.loginDays
-    val loginDaysLevel3 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 3 - 1).first._1.loginDays
-    val loginDaysLevel4 = sortByLoginDays.zipWithIndex.filter(_._2 == partSize * 4 - 1).first._1.loginDays
-    val savingLevel1 = sortBySaving.zipWithIndex.filter(_._2 == partSize - 1).first._1.saving
-    val savingLevel2 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 2 - 1).first._1.saving
-    val savingLevel3 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 3 - 1).first._1.saving
-    val savingLevel4 = sortBySaving.zipWithIndex.filter(_._2 == partSize * 4 - 1).first._1.saving
+    val partSize = (dataSize / 5).toInt
+    val sortByLoginDays = parseData.sortBy(_.loginDays).toLocalIterator.toList
+    val sortBySaving = parseData.sortBy(_.saving).toLocalIterator.toList
+    val loginDaysLevel1 = sortByLoginDays(partSize - 1).loginDays
+    val loginDaysLevel2 = sortByLoginDays(partSize * 2 - 1).loginDays
+    val loginDaysLevel3 = sortByLoginDays(partSize * 3 - 1).loginDays
+    val loginDaysLevel4 = sortByLoginDays(partSize * 4 - 1).loginDays
+    val savingLevel1 = sortBySaving(partSize - 1).saving
+    val savingLevel2 = sortBySaving(partSize * 2 - 1).saving
+    val savingLevel3 = sortBySaving(partSize * 3 - 1).saving
+    val savingLevel4 = sortBySaving(partSize * 4 - 1).saving
 
     parseData map {
       case row =>
@@ -109,7 +109,8 @@ class ALSModel2 extends ALSModel {
           case saving if saving <= savingLevel4 => 4
           case _ => 5
         }
-        val result = Rating(row.pubId, row.gameId, loginScore / 5 * 1 + savingScore / 5 * 4)
+
+        val result = Rating(row.pubId, row.gameId, (loginScore.toDouble / 5 * 1 + savingScore.toDouble / 5 * 4).toInt)
         Logger.log.warn("source = " + row)
         Logger.log.warn("result = " + result)
         Logger.log.warn("===")
