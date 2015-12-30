@@ -7,7 +7,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel {
+class ALSModel extends Serializable {
   private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
   private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
