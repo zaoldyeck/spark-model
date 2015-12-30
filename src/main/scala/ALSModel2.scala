@@ -27,9 +27,9 @@ class ALSModel2 extends ALSModel {
 
     // Build the recommendation model using ALS
     val rank = 10 //number of lantent factors
-    val numIterations = 5
+    val numIterations = 10
     val lambda = 0.01 //normalization parameter
-    val alpha = 1.0
+    val alpha = 0.01
 
     Logger.log.warn("Training...")
     val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
