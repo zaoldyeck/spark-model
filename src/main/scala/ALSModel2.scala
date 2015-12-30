@@ -109,7 +109,11 @@ class ALSModel2 extends ALSModel {
           case saving if saving < savingLevel4 => 4
           case _ => 5
         }
-        Rating(row.pubId, row.gameId, loginScore + savingScore * 4)
+        val result = Rating(row.pubId, row.gameId, loginScore / 5 * 1 + savingScore / 5 * 4)
+        Logger.log.warn("source = " + row)
+        Logger.log.warn("result = " + result)
+        Logger.log.warn("===")
+        result
     }
   }
 }
