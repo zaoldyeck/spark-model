@@ -75,7 +75,8 @@ class ALSModel {
   def mappingData(data: RDD[String]): RDD[Rating] = {
     Logger.log.warn("Mapping...")
 
-    data.filter(_ != data.first).flatMap(_.split(",") match {
+    val header: String = data.first
+    data.filter(_ != header).flatMap(_.split(",") match {
       case Array(pub_id, game_id, saving) =>
         val gameIdNoQuotes = game_id.replace("\"", "")
         Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))

@@ -76,8 +76,8 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn("Mapping...")
 
     case class Data(pubId: Int, gameId: Int, loginDays: Int, saving: Int)
-
-    val parseData = data.filter(_ != data.first).map(_.split(",") match {
+    val header: String = data.first
+    val parseData = data.filter(_ != header).map(_.split(",") match {
       case Array(pub_id, game_id, login_days, saving) => Data(pub_id.toInt, game_id.toInt, login_days.toInt, saving.toInt)
     })
     val dataSize = parseData.count
