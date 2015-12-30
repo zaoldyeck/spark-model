@@ -9,7 +9,7 @@ import scala.sys.process._
   */
 class ALSModel2 extends ALSModel {
   private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_has_login_days.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_has_login_days.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als2"
 
   override def run(sc: SparkContext): Unit = {
