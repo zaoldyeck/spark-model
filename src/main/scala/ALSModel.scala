@@ -22,14 +22,14 @@ class ALSModel extends Serializable {
     val testData: RDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
 
-    val ratings: RDD[Rating] = ratingData(mappingData(trainingData))
+    val ratings: RDD[Rating] = mappingData(trainingData)
     val ratingsTest: RDD[Rating] = mappingData(testData)
     Logger.log.warn("Training Data Size=" + ratings.count)
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
     val rank = 20 //number of latent factors
-    val numIterations = 30
+    val numIterations = 20
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 
@@ -90,7 +90,8 @@ class ALSModel extends Serializable {
       _.split(",") match {
         case Array(pub_id, game_id, saving) =>
           val gameIdNoQuotes = game_id.replace("\"", "")
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+          val rating = saving.toDouble
+          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None
