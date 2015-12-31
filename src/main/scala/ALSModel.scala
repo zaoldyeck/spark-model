@@ -98,7 +98,7 @@ class ALSModel extends Serializable {
     }
   }
 
-  private def ratingData(data: RDD[Rating]): RDD[Rating] = data.filter(_.rating > 0) map {
+  private def ratingData(data: RDD[Rating]): RDD[Rating] = data map {
     case Rating(user, product, rating) => Rating(user, product, if (rating > 0) 1 else 0)
   }
 
