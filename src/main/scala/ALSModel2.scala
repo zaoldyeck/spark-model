@@ -27,7 +27,7 @@ class ALSModel2 extends ALSModel {
 
     // Build the recommendation model using ALS
     val rank = 8 //number of lantent factors
-    val numIterations = 50
+    val numIterations = 10
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 
@@ -72,6 +72,8 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds map {
       case ((user, product), ((rate, score), pred)) => ((user, product), (rate.toDouble, pred))
     }))
+
+    val array: Array[TestData] = Array(TestData(1,2,3,4))
   }
 
   private def ratingData(data: RDD[String]): RDD[Rating] = {
