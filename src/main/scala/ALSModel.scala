@@ -22,13 +22,13 @@ class ALSModel extends Serializable {
     val testData: RDD[String] = sc.textFile(TEST_DATA_IN_PATH)
     //val ratings: SparkRDD[Rating] = ratingData(mappingData(trainingData))
 
-    val ratings: RDD[Rating] = mappingData(trainingData)
+    val ratings: RDD[Rating] = ratingData(mappingData(trainingData))
     val ratingsTest: RDD[Rating] = mappingData(testData)
     Logger.log.warn("Training Data Size=" + ratings.count)
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
-    val rank = 20  //number of latent factors
+    val rank = 20 //number of latent factors
     val numIterations = 50
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
@@ -74,43 +74,31 @@ class ALSModel extends Serializable {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
+  def dropHeader(data: RDD[String]): RDD[String] = {
+    data.mapPartitionsWithIndex {
+      case (0, lines) if lines.hasNext =>
+        lines.next
+        lines
+      case (_, lines) => lines
+    }
+  }
+
   def mappingData(data: RDD[String]): RDD[Rating] = {
     Logger.log.warn("Mapping...")
 
-    val header: String = data.first
-    data.filter(_ != header).flatMap(_.split(",") match {
-      case Array(pub_id, game_id, saving) =>
-        val gameIdNoQuotes = game_id.replace("\"", "")
-        Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
-      case some =>
-        Logger.log.warn("data error:" + some.mkString(","))
-        None
-    })
-  }
-
-  private def ratingData(data: RDD[Rating]): RDD[Rating] = {
-    val sortedData = data.sortBy(_.rating)
-
-    val dataNotSavingSize = sortedData.filter(_.rating <= 0).count
-    val dataHasSavingSize = sortedData.filter(_.rating > 0).count
-
-    sortedData.zipWithIndex.map {
-      case (rating, index) =>
-        index match {
-          case i if i < dataNotSavingSize => Rating(rating.user, rating.product, -1)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 => Rating(rating.user, rating.product, 1)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 2 => Rating(rating.user, rating.product, 2)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 3 => Rating(rating.user, rating.product, 3)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 4 => Rating(rating.user, rating.product, 4)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 5 => Rating(rating.user, rating.product, 5)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 6 => Rating(rating.user, rating.product, 6)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 7 => Rating(rating.user, rating.product, 7)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 8 => Rating(rating.user, rating.product, 8)
-          case i if i < dataNotSavingSize + dataHasSavingSize / 10 * 9 => Rating(rating.user, rating.product, 9)
-          case i if i < dataNotSavingSize + dataHasSavingSize => Rating(rating.user, rating.product, 10)
-        }
+    dropHeader(data) flatMap {
+      _.split(",") match {
+        case Array(pub_id, game_id, saving) =>
+          val gameIdNoQuotes = game_id.replace("\"", "")
+          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, saving.toDouble))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
     }
   }
+
+  private def ratingData(data: RDD[Rating]): RDD[Rating] = data.filter(_.rating > 0)
 
   case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
 
