@@ -29,7 +29,7 @@ class ALSModel extends Serializable {
 
     // Build the recommendation model using ALS
     val rank = 20 //number of latent factors
-    val numIterations = 50
+    val numIterations = 40
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 
