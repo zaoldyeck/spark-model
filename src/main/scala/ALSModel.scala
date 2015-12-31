@@ -8,8 +8,10 @@ import scala.sys.process._
   * Created by zaoldyeck on 2015/12/23.
   */
 class ALSModel extends Serializable {
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
+  //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
+  //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   def run(sc: SparkContext) = {
@@ -26,8 +28,8 @@ class ALSModel extends Serializable {
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
-    val rank = 10 //number of lantent factors
-    val numIterations = 10
+    val rank = 20  //number of latent factors
+    val numIterations = 50
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 

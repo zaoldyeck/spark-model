@@ -27,12 +27,13 @@ class ALSModel2 extends ALSModel {
 
     // Build the recommendation model using ALS
     val rank = 8 //number of lantent factors
-    val numIterations = 10
+    val numIterations = 50
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 
     Logger.log.warn("Training...")
-    val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
+    //val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
+    val model = ALS.train(ratings, rank, numIterations, lambda)
 
     // Evaluate the model on rating data
     val usersProducts: RDD[(Int, Int)] = ratingsTest.map {
@@ -72,8 +73,6 @@ class ALSModel2 extends ALSModel {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds map {
       case ((user, product), ((rate, score), pred)) => ((user, product), (rate.toDouble, pred))
     }))
-
-    val array: Array[TestData] = Array(TestData(1,2,3,4))
   }
 
   private def ratingData(data: RDD[String]): RDD[Rating] = {
@@ -148,18 +147,18 @@ class ALSModel2 extends ALSModel {
     parseData map {
       case row =>
         val loginScore = row.loginDays match {
-          case days if days <= loginDaysLevel1 => 1
-          case days if days <= loginDaysLevel2 => 2
-          case days if days <= loginDaysLevel3 => 3
-          case days if days <= loginDaysLevel4 => 4
-          case _ => 5
+          case days if days <= loginDaysLevel1 => 0
+          case days if days <= loginDaysLevel2 => 1
+          case days if days <= loginDaysLevel3 => 2
+          case days if days <= loginDaysLevel4 => 3
+          case _ => 4
         }
         val savingScore = row.saving match {
-          case saving if saving <= savingLevel1 => 1
-          case saving if saving <= savingLevel2 => 2
-          case saving if saving <= savingLevel3 => 3
-          case saving if saving <= savingLevel4 => 4
-          case _ => 5
+          case saving if saving <= savingLevel1 => 0
+          case saving if saving <= savingLevel2 => 1
+          case saving if saving <= savingLevel3 => 2
+          case saving if saving <= savingLevel4 => 3
+          case _ => 4
         }
 
         TestData(row.pubId, row.gameId, row.saving, loginScore.toDouble / 100 + savingScore.toDouble)
