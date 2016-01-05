@@ -8,6 +8,7 @@ import org.apache.spark._
 object Main {
 
   def main(args: Array[String]) {
+    LogManager.getRootLogger.setLevel(Level.WARN)
     val sc = setSparkEnv()
     sc.setCheckpointDir("checkpoint")
     new ALSModel().run(sc)
