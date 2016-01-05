@@ -10,8 +10,10 @@ import scala.sys.process._
 class ALSModel extends Serializable {
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
+  //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
+  //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_v2.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_v2.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   def run(sc: SparkContext) = {
@@ -28,10 +30,10 @@ class ALSModel extends Serializable {
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
-    val rank = 20 //number of latent factors
-    val numIterations = 20
-    val lambda = 0.01 //normalization parameter
-    val alpha = 0.01
+    val rank = 40 //number of latent factors
+    val numIterations = 50
+    val lambda = 35 //normalization parameter
+    val alpha = 0.8
 
     Logger.log.warn("Training...")
     val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
