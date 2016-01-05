@@ -38,7 +38,8 @@ class ALSModel extends Serializable {
     val alpha = 0.01
 
     Logger.log.warn("Training...")
-    val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
+    //val model = ALS.trainImplicit(ratings, rank, numIterations, lambda, alpha)
+    val model = ALS.train(ratings, rank, numIterations, lambda)
 
     // Evaluate the model on rating data
     val usersProducts = ratingsTest.map {
