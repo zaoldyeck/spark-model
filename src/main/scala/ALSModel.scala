@@ -32,8 +32,8 @@ class ALSModel extends Serializable {
     Logger.log.warn("Test Data Size=" + ratingsTest.count)
 
     // Build the recommendation model using ALS
-    val rank = 20 //number of latent factors
-    val numIterations = 20
+    val rank = 10 //number of latent factors
+    val numIterations = 10
     val lambda = 0.01 //normalization parameter
     val alpha = 0.01
 
