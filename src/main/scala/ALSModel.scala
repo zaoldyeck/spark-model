@@ -14,8 +14,8 @@ class ALSModel extends Serializable {
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v2.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_v2.csv"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_no_filter_login.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test_no_filter_login.csv"
+  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training.csv"
+  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   def run(sc: SparkContext) = {
