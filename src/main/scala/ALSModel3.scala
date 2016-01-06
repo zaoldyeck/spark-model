@@ -1,5 +1,4 @@
 import java.io.PrintWriter
-import java.util.concurrent.atomic.AtomicInteger
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -8,10 +7,11 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.sys.process._
-import scala.util.{Try, Random}
+import scala.util.{Random, Try}
 
 /**
   * Created by zaoldyeck on 2016/1/6.
