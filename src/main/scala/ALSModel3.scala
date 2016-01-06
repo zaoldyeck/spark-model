@@ -90,6 +90,8 @@ class ALSModel3 extends ALSModel {
     }
 
     def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
+      Logger.log.warn(trainingData.count)
+      Logger.log.warn(testingData.count)
       val rank: Int = 10
       val numIterations: Int = 10
       val lambda: Double = 0.01
@@ -112,7 +114,7 @@ class ALSModel3 extends ALSModel {
     val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
     val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
     Try {
-      val combineOutput: String = s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------"
+      val combineOutput: String = s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------\n"
       Logger.log.warn(combineOutput)
       printWriter.write(combineOutput)
     } match {
