@@ -31,6 +31,7 @@ class ALSModel3 extends ALSModel {
     val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_PATH
     delete_out_path.!
 
+    /*
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
       rank <- 2 until 50 by 2
@@ -73,6 +74,47 @@ class ALSModel3 extends ALSModel {
         s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
       }
     })), Duration.Inf)
+    */
+
+    //Test
+    case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
+    val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2) match {
+      case (half1, half2) =>
+        val half1Split: (Seq[Rating], Seq[Rating]) = half1.splitAt(half1.length / 2)
+        val half2Split: (Seq[Rating], Seq[Rating]) = half2.splitAt(half2.length / 2)
+        Prediction(
+          sc.parallelize(half1Split._1),
+          sc.parallelize(half1Split._2),
+          sc.parallelize(half2Split._1),
+          sc.parallelize(half2Split._2))
+    }
+
+    for {
+      output_1 <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+      output_2 <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+      output_3 <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+      output_4 <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+    } yield {
+      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+      Try(printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------")) match {
+        case _ => printWriter.close()
+      }
+    }
+
+    def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
+      val rank: Int = 10
+      val numIterations: Int = 10
+      val lambda: Double = 0.01
+      val alpha: Double = 0.01
+
+      val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, rank, numIterations, lambda, alpha)
+        .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+        .map(predict => ((predict.user, predict.product), predict.rating))
+        .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+        case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+      }
+      s"rank:$rank,lambda:$lambda,alpha:$alpha,${calConfusionMatrix(predictResult).toListString}"
+    }
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
