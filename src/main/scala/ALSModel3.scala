@@ -17,9 +17,9 @@ import scala.util.{Random, Try}
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
-  private val TRAINING_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
-  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
-  private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
+  private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
+  private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
+  private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
@@ -28,7 +28,7 @@ class ALSModel3 extends ALSModel {
     val predictionData: Array[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist.collect
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     val length: Int = predictionData.length
-    val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_PATH
+    val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
     delete_out_path.!
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
@@ -75,24 +75,24 @@ class ALSModel3 extends ALSModel {
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
-    val confusionMatrix = predictResult.map {
+    val confusionMatrix: RDD[ConfusionMatrix] = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
       case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
       case _ ⇒ ConfusionMatrix(tn = 1)
     }
 
-    val result = confusionMatrix.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
-    val p = result.tp + result.fn
-    val n = result.fp + result.tn
+    val result: ConfusionMatrix = confusionMatrix.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
+    val p: Double = result.tp + result.fn
+    val n: Double = result.fp + result.tn
 
-    val accuracy = (result.tp + result.tn) / (p + n)
-    val precision = result.tp / (result.tp + result.fp)
-    val recall = result.tp / p
-    val fallout = result.fp / n
-    val sensitivity = result.tp / (result.tp + result.fn)
-    val specificity = result.tn / (result.fp + result.tn)
-    val f = 2 * ((precision * recall) / (precision + recall))
+    val accuracy: Double = (result.tp + result.tn) / (p + n)
+    val precision: Double = result.tp / (result.tp + result.fp)
+    val recall: Double = result.tp / p
+    val fallout: Double = result.fp / n
+    val sensitivity: Double = result.tp / (result.tp + result.fn)
+    val specificity: Double = result.tn / (result.fp + result.tn)
+    val f: Double = 2 * ((precision * recall) / (precision + recall))
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 }
