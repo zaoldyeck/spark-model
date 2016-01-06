@@ -89,19 +89,6 @@ class ALSModel3 extends ALSModel {
           sc.parallelize(half2Split._2))
     }
 
-    val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-    val output_2: String = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-    val output_3: String = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-    val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-    val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-    Try {
-      val combineOutput: String = s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------"
-      Logger.log.warn(combineOutput)
-      printWriter.write(combineOutput)
-    } match {
-      case _ => printWriter.close()
-    }
-
     def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
       val rank: Int = 10
       val numIterations: Int = 10
@@ -117,6 +104,19 @@ class ALSModel3 extends ALSModel {
       val output: String = s"rank:$rank,lambda:$lambda,alpha:$alpha,${calConfusionMatrix(predictResult).toListString}"
       Logger.log.warn(output)
       output
+    }
+
+    val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+    val output_2: String = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+    val output_3: String = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+    val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+    val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+    Try {
+      val combineOutput: String = s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------"
+      Logger.log.warn(combineOutput)
+      printWriter.write(combineOutput)
+    } match {
+      case _ => printWriter.close()
     }
   }
 
