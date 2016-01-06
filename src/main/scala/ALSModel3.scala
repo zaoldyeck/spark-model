@@ -59,7 +59,7 @@ class ALSModel3 extends ALSModel {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
         val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${evaluation.toListString}"
+        val output: String = evaluation.toListString
         Logger.log.warn(output)
         Evaluation(output, evaluation.recall)
       }
@@ -71,9 +71,10 @@ class ALSModel3 extends ALSModel {
       val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
       Try {
         val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-        printWriter.write(s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
-          s"Difference=${recalls.max - recalls.min}\n" +
-          s"---------------------------------------------------------------------------\n")
+        printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
+          s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
+          s"Difference=${"%.4f".format(recalls.max - recalls.min)}\n" +
+          s"--------------------------------------------------------------------------------------------------------\n")
       } match {
         case _ => printWriter.close()
       }
