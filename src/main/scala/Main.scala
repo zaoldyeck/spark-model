@@ -11,11 +11,12 @@ object Main {
     LogManager.getRootLogger.setLevel(Level.WARN)
     implicit val sc = setSparkEnv()
     sc.setCheckpointDir("checkpoint")
-    new ALSModel().run
-    //new ALSModel2().run(sc)
-    //new KMeansModel().run(sc)
-    //new LDAModel().run(sc)
-    //new TestALSModel().run(sc)
+    //new ALSModel().run
+    //new ALSModel2().run
+    new ALSModel3().run
+    //new KMeansModel().run
+    //new LDAModel().run
+    //new TestALSModel().run
     sc.stop()
   }
 
