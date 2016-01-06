@@ -75,17 +75,15 @@ class ALSModel3 extends ALSModel {
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
-    val confusionMatrix: RDD[ConfusionMatrix] = predictResult.map {
+    val result: ConfusionMatrix = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
       case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
       case _ ⇒ ConfusionMatrix(tn = 1)
-    }
+    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
 
-    val result: ConfusionMatrix = confusionMatrix.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p: Double = result.tp + result.fn
     val n: Double = result.fp + result.tn
-
     val accuracy: Double = (result.tp + result.tn) / (p + n)
     val precision: Double = result.tp / (result.tp + result.fp)
     val recall: Double = result.tp / p

@@ -134,14 +134,13 @@ class ALSModel extends Serializable {
   }
 
   def calConfusionMatrix(data: RDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {
-    val confusionMatrix = data.map {
+    val result = data.map {
       case ((user, product), (fact, pred)) if fact > 0 && pred > 0 => ConfusionMatrix(tp = 1)
       case ((user, product), (fact, pred)) if fact > 0 && pred <= 0 => ConfusionMatrix(fn = 1)
       case ((user, product), (fact, pred)) if fact <= 0 && pred > 0 => ConfusionMatrix(fp = 1)
       case _ ⇒ ConfusionMatrix(tn = 1)
-    }
+    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
 
-    val result = confusionMatrix.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p = result.tp + result.fn
     val n = result.fp + result.tn
     Logger.log.warn("P=" + p)
