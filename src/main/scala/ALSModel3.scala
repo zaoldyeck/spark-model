@@ -26,6 +26,8 @@ class ALSModel3 extends ALSModel {
     }
     val trainingDataSet: RDD[Rating] = sc.parallelize(split.training)
     val testingDataSet: RDD[Rating] = sc.parallelize(split.testing)
+    Logger.log.warn("Training Data Size=" + trainingDataSet.count)
+    Logger.log.warn("Testing Data Size=" + testingDataSet.count)
 
     val rank = 10
     val numIterations = 10
