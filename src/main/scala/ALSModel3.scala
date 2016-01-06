@@ -1,9 +1,17 @@
+import java.io.PrintWriter
+import java.util.concurrent.atomic.AtomicInteger
+
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
+import scala.collection.immutable.IndexedSeq
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.sys.process._
-import scala.util.Random
+import scala.util.{Try, Random}
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -18,35 +26,53 @@ class ALSModel3 extends ALSModel {
   override def run(implicit sc: SparkContext): Unit = {
     val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist
     val predictionData: Array[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist.collect
-
+    val fileSystem: FileSystem = FileSystem.get(new Configuration)
     val length: Int = predictionData.length
-    case class Prediction(testing: Seq[Rating], training: Seq[Rating])
-    val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 4) match {
-      case (testing, training) => Prediction(testing, training)
-    }
-    val trainingDataSet: RDD[Rating] = sc.parallelize(split.training)
-    val testingDataSet: RDD[Rating] = sc.parallelize(split.testing)
-
-    val rank = 10
-    val numIterations = 10
-    val lambda = 0.01
-    val alpha = 0.01
-
-    val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData union trainingDataSet, rank, numIterations, lambda, alpha)
-      .predict(testingDataSet.map(dataSet => (dataSet.user, dataSet.product)))
-      .map(predict => ((predict.user, predict.product), predict.rating))
-      .join(testingDataSet.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-      case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-    }
-
     val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_PATH
     delete_out_path.!
-    predictResult.map(result => result.user + "\t" + result.product + "\t" + result.fact + "\t" + "%02.4f" format result.predict)
-      .saveAsTextFile(OUTPUT_PATH)
 
-    val mse: Double = predictResult.map(result => Math.pow(result.predict - result.fact, 2)).mean
-    Logger.log.warn("--->Mean Squared Error = " + mse)
-    Logger.log.warn(calConfusionMatrix(predictResult).toString)
+    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
+    val parametersSeq: IndexedSeq[AlsParameters] = for {
+      rank <- 2 until 50 by 2
+      lambda <- 0.0001 until 15 by 0.1
+      alpha <- 0.0001 until 50 by 0.1
+    } yield new AlsParameters(rank, lambda, alpha)
+
+    Await.result(Future.sequence(Random.shuffle(parametersSeq).map(parameters => Future {
+      case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
+      val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2) match {
+        case (half1, half2) =>
+          val half1Split: (Seq[Rating], Seq[Rating]) = half1.splitAt(half1.length / 2)
+          val half2Split: (Seq[Rating], Seq[Rating]) = half2.splitAt(half2.length / 2)
+          Prediction(
+            sc.parallelize(half1Split._1),
+            sc.parallelize(half1Split._2),
+            sc.parallelize(half2Split._1),
+            sc.parallelize(half2Split._2))
+      }
+
+      for {
+        output_1 <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+        output_2 <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+        output_3 <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+        output_4 <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      } yield {
+        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+        Try(printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------")) match {
+          case _ => printWriter.close()
+        }
+      }
+
+      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+          .map(predict => ((predict.user, predict.product), predict.rating))
+          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+        }
+        s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
+      }
+    })), Duration.Inf)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
