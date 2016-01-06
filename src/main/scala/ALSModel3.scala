@@ -24,8 +24,8 @@ class ALSModel3 extends ALSModel {
     val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 4) match {
       case (testing, training) => Prediction(testing, training)
     }
-    val trainingDataSet: RDD[Rating] = sc.parallelize(split.testing)
-    val testingDataSet: RDD[Rating] = sc.parallelize(split.training)
+    val trainingDataSet: RDD[Rating] = sc.parallelize(split.training)
+    val testingDataSet: RDD[Rating] = sc.parallelize(split.testing)
 
     val rank = 10
     val numIterations = 10
