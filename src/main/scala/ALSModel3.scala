@@ -90,14 +90,16 @@ class ALSModel3 extends ALSModel {
     }
 
     for {
-      output_1 <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-      output_2 <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-      output_3 <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-      output_4 <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      output_1: Char <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+      output_2: Char <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+      output_3: Char <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+      output_4: Char <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
     } yield {
       val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-      Try(printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------")) match {
-        case _ => printWriter.close()
+      try {
+        printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------")
+      } finally {
+        printWriter.close()
       }
     }
 
