@@ -38,7 +38,7 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    Random.shuffle(parametersSeq).foreach(parameters => {
+    Random.shuffle(parametersSeq).foreach(parameters => Await.result({
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2 - 1) match {
         case (half1, half2) =>
@@ -74,7 +74,7 @@ class ALSModel3 extends ALSModel {
         evaluation_2: Evaluation <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
         evaluation_3: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
         evaluation_4: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      } yield Await.result(Future {
+      } yield {
         val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
         Try {
           val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
@@ -85,8 +85,8 @@ class ALSModel3 extends ALSModel {
         } match {
           case _ => printWriter.close()
         }
-      }, Duration.Inf)
-    })
+      }
+    }, Duration.Inf))
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
