@@ -18,8 +18,8 @@ class ALSModel3 extends ALSModel {
     val predictionData: Array[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist.collect
 
     val length: Int = predictionData.length
-    case class Prediction(testing: Array[Rating], training: Array[Rating])
-    val split: Prediction = Random.shuffle(predictionData).splitAt(length / 4) match {
+    case class Prediction(testing: Seq[Rating], training: Seq[Rating])
+    val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 4) match {
       case (testing, training) => Prediction(testing, training)
     }
     val trainingDataSet: RDD[Rating] = sc.parallelize(split.testing)
