@@ -43,7 +43,7 @@ class ALSModel3 extends ALSModel {
       .saveAsTextFile(OUTPUT_PATH)
 
     Logger.log.warn("--->Mean Squared Error = " + mse)
-    Logger.log.warn(calConfusionMatrix(predictResult).toString)
+    Logger.log.warn(this.calConfusionMatrix(predictResult).toString)
   }
 
   def calConfusionMatrix(predictResult: RDD[PredictResult]): ConfusionMatrixResult = {
