@@ -1,6 +1,8 @@
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, ALS, Rating}
+import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
+
+import scala.sys.process._
 import scala.util.Random
 
 /**
@@ -37,11 +39,12 @@ class ALSModel3 extends ALSModel {
       case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
     }
 
-    val mse: Double = predictResult.map(result => Math.pow(result.predict - result.fact, 2)).mean
-
+    val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_PATH
+    delete_out_path.!
     predictResult.map(result => result.user + "\t" + result.product + "\t" + result.fact + "\t" + "%02.4f" format result.predict)
       .saveAsTextFile(OUTPUT_PATH)
 
+    val mse: Double = predictResult.map(result => Math.pow(result.predict - result.fact, 2)).mean
     Logger.log.warn("--->Mean Squared Error = " + mse)
     Logger.log.warn(calConfusionMatrix(predictResult).toString)
   }
