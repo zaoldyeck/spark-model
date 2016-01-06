@@ -7,9 +7,6 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 import scala.sys.process._
 import scala.util.{Random, Try}
 
@@ -38,7 +35,7 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    Await.result(Future.sequence(Random.shuffle(parametersSeq).map(parameters => Future {
+    Random.shuffle(parametersSeq).foreach(parameters => {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2 - 1) match {
         case (half1, half2) =>
@@ -71,7 +68,7 @@ class ALSModel3 extends ALSModel {
       } match {
         case _ => printWriter.close()
       }
-    })), Duration.Inf)
+    })
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
