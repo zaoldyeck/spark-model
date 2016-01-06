@@ -7,10 +7,11 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.sys.process._
 import scala.util.{Random, Try}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -68,23 +69,24 @@ class ALSModel3 extends ALSModel {
         Evaluation(output, evaluation.recall)
       }
 
-      for {
-        evaluation_1: Evaluation <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-        evaluation_2: Evaluation <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-        evaluation_3: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-        evaluation_4: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      } yield {
-        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-        Try {
-          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-          printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
-            s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
-            s"Difference=${"%.4f".format(recalls.max - recalls.min)}\n" +
-            s"--------------------------------------------------------------------------------------------------------\n")
-        } match {
-          case _ => printWriter.close()
-        }
-      }
+      Await.result(
+        for {
+          evaluation_1: Evaluation <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+          evaluation_2: Evaluation <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+          evaluation_3: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+          evaluation_4: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+        } yield {
+          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+          Try {
+            val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+            printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
+              s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
+              s"Difference=${"%.4f".format(recalls.max - recalls.min)}\n" +
+              s"--------------------------------------------------------------------------------------------------------\n")
+          } match {
+            case _ => printWriter.close()
+          }
+        }, Duration.Inf)
     })
   }
 
