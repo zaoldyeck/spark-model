@@ -74,7 +74,7 @@ class ALSModel3 extends ALSModel {
         evaluation_2: Evaluation <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
         evaluation_3: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
         evaluation_4: Evaluation <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      } yield (evaluation_1: Evaluation, evaluation_2: Evaluation, evaluation_3: Evaluation, evaluation_4: Evaluation) => {
+      } yield Await.result(Future {
         val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
         Try {
           val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
@@ -85,7 +85,7 @@ class ALSModel3 extends ALSModel {
         } match {
           case _ => printWriter.close()
         }
-      }
+      }, Duration.Inf)
     })
   }
 
