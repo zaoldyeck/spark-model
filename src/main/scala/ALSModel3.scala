@@ -9,8 +9,8 @@ import scala.util.Random
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
-  private val TRAINING_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
-  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
+  private val TRAINING_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_web.txt"
+  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_01.txt"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
@@ -26,8 +26,6 @@ class ALSModel3 extends ALSModel {
     }
     val trainingDataSet: RDD[Rating] = sc.parallelize(split.training)
     val testingDataSet: RDD[Rating] = sc.parallelize(split.testing)
-    Logger.log.warn("Training Data Size=" + trainingDataSet.count)
-    Logger.log.warn("Testing Data Size=" + testingDataSet.count)
 
     val rank = 10
     val numIterations = 10
