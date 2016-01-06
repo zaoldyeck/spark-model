@@ -52,18 +52,13 @@ class ALSModel3 extends ALSModel {
       }
 
       def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
-        val rank: Int = 10
-        val numIterations: Int = 10
-        val lambda: Double = 0.01
-        val alpha: Double = 0.01
-
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, rank, numIterations, lambda, alpha)
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
           .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
-        s"rank:$rank,lambda:$lambda,alpha:$alpha,${calConfusionMatrix(predictResult).toListString}"
+        s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
       }
 
       val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
