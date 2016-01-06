@@ -7,8 +7,6 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.sys.process._
 import scala.util.{Random, Try}
 
@@ -50,30 +48,34 @@ class ALSModel3 extends ALSModel {
             sc.parallelize(half2Split._2))
       }
 
-      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[String] = Future {
+      case class Evaluation(output: String, recall: Double) {
+        override def toString: String = output
+      }
+      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Evaluation = {
         val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
           .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
-        val output: String = s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
+        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+        val output: String = s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${evaluation.toListString}"
         Logger.log.warn(output)
-        output
+        Evaluation(output, evaluation.recall)
       }
 
-      for {
-        output_1: String <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-        output_2: String <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-        output_3: String <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-        output_4: String <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      } yield {
-        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-        Try {
-          printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n--------------------------------------------\n")
-        } match {
-          case _ => printWriter.close()
-        }
+      val evaluation_1: Evaluation = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+      val evaluation_2: Evaluation = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+      val evaluation_3: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+      val evaluation_4: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+      Try {
+        val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+        printWriter.write(s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
+          s"Difference=${recalls.max - recalls.min}\n" +
+          s"---------------------------------------------------------------------------\n")
+      } match {
+        case _ => printWriter.close()
       }
     })
   }
