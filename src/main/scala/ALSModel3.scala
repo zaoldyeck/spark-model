@@ -10,7 +10,7 @@ import scala.util.Random
   */
 class ALSModel3 extends ALSModel {
   private val TRAINING_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
-  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
+  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
