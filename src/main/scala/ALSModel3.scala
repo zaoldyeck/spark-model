@@ -7,6 +7,8 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.sys.process._
 import scala.util.{Random, Try}
 
@@ -48,7 +50,7 @@ class ALSModel3 extends ALSModel {
             sc.parallelize(half2Split._2))
       }
 
-      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
+      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[String] = Future {
         val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
@@ -60,15 +62,18 @@ class ALSModel3 extends ALSModel {
         output
       }
 
-      val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-      val output_2: String = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-      val output_3: String = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-      val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-      Try {
-        printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n--------------------------------------------\n")
-      } match {
-        case _ => printWriter.close()
+      for {
+        output_1: String <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+        output_2: String <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+        output_3: String <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+        output_4: String <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      } yield {
+        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+        Try {
+          printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n--------------------------------------------\n")
+        } match {
+          case _ => printWriter.close()
+        }
       }
     })
   }
