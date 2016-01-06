@@ -40,10 +40,10 @@ class ALSModel3 extends ALSModel {
 
     Await.result(Future.sequence(Random.shuffle(parametersSeq).map(parameters => Future {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
-      val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2) match {
+      val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2 - 1) match {
         case (half1, half2) =>
-          val half1Split: (Seq[Rating], Seq[Rating]) = half1.splitAt(half1.length / 2)
-          val half2Split: (Seq[Rating], Seq[Rating]) = half2.splitAt(half2.length / 2)
+          val half1Split: (Seq[Rating], Seq[Rating]) = half1.splitAt(half1.length / 2 - 1)
+          val half2Split: (Seq[Rating], Seq[Rating]) = half2.splitAt(half2.length / 2 - 1)
           Prediction(
             sc.parallelize(half1Split._1),
             sc.parallelize(half1Split._2),
@@ -67,7 +67,7 @@ class ALSModel3 extends ALSModel {
       val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
       val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
       Try {
-        printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------\n")
+        printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n--------------------------------------------\n")
       } match {
         case _ => printWriter.close()
       }
