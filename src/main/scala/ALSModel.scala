@@ -18,7 +18,7 @@ class ALSModel extends Serializable {
   private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
-  def run(sc: SparkContext) = {
+  def run(implicit sc: SparkContext) = {
 
     // Load and parse the data
     Logger.log.warn("Load into RDD...")

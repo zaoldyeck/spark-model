@@ -9,9 +9,9 @@ object Main {
 
   def main(args: Array[String]) {
     LogManager.getRootLogger.setLevel(Level.WARN)
-    val sc = setSparkEnv()
+    implicit val sc = setSparkEnv()
     sc.setCheckpointDir("checkpoint")
-    new ALSModel().run(sc)
+    new ALSModel().run
     //new ALSModel2().run(sc)
     //new KMeansModel().run(sc)
     //new LDAModel().run(sc)
