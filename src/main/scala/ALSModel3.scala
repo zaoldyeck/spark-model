@@ -52,7 +52,7 @@ class ALSModel3 extends ALSModel {
         override def toString: String = output
       }
       def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Evaluation = {
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
           .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
