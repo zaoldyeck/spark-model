@@ -17,8 +17,8 @@ import scala.util.{Random, Try}
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
-  private val TRAINING_DATA_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
-  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
+  private val TRAINING_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
+  private val PREDICTION_DATA_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
@@ -31,7 +31,6 @@ class ALSModel3 extends ALSModel {
     val delete_out_path = "hadoop fs -rm -f -r " + OUTPUT_PATH
     delete_out_path.!
 
-    /*
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
       rank <- 2 until 50 by 2
@@ -52,74 +51,32 @@ class ALSModel3 extends ALSModel {
             sc.parallelize(half2Split._2))
       }
 
-      for {
-        output_1 <- evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-        output_2 <- evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-        output_3 <- evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-        output_4 <- evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-      } yield {
-        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-        Try(printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------")) match {
-          case _ => printWriter.close()
-        }
+      val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+      val output_2: String = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+      val output_3: String = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+      val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+      Try {
+        printWriter.write(s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------\n")
+      } match {
+        case _ => printWriter.close()
       }
 
       def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+        val rank: Int = 10
+        val numIterations: Int = 10
+        val lambda: Double = 0.01
+        val alpha: Double = 0.01
+
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, rank, numIterations, lambda, alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
           .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
-        s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
+        s"rank:$rank,lambda:$lambda,alpha:$alpha,${calConfusionMatrix(predictResult).toListString}"
       }
     })), Duration.Inf)
-    */
-
-    //Test
-    case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
-    val split: Prediction = Random.shuffle(predictionData.toSeq).splitAt(length / 2) match {
-      case (half1, half2) =>
-        val half1Split: (Seq[Rating], Seq[Rating]) = half1.splitAt(half1.length / 2)
-        val half2Split: (Seq[Rating], Seq[Rating]) = half2.splitAt(half2.length / 2)
-        Prediction(
-          sc.parallelize(half1Split._1),
-          sc.parallelize(half1Split._2),
-          sc.parallelize(half2Split._1),
-          sc.parallelize(half2Split._2))
-    }
-
-    def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): String = {
-      Logger.log.warn(trainingData.count)
-      Logger.log.warn(testingData.count)
-      val rank: Int = 10
-      val numIterations: Int = 10
-      val lambda: Double = 0.01
-      val alpha: Double = 0.01
-
-      val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, rank, numIterations, lambda, alpha)
-        .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-        .map(predict => ((predict.user, predict.product), predict.rating))
-        .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-        case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-      }
-      val output: String = s"rank:$rank,lambda:$lambda,alpha:$alpha,${calConfusionMatrix(predictResult).toListString}"
-      Logger.log.warn(output)
-      output
-    }
-
-    val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-    val output_2: String = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-    val output_3: String = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-    val output_4: String = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
-    val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-    Try {
-      val combineOutput: String = s"$output_1\n$output_2\n$output_3\n$output_4\n-------------------------------\n"
-      Logger.log.warn(combineOutput)
-      printWriter.write(combineOutput)
-    } match {
-      case _ => printWriter.close()
-    }
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
@@ -133,8 +90,6 @@ class ALSModel3 extends ALSModel {
     val result = confusionMatrix.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
     val p = result.tp + result.fn
     val n = result.fp + result.tn
-    Logger.log.warn("P=" + p)
-    Logger.log.warn("N=" + n)
 
     val accuracy = (result.tp + result.tn) / (p + n)
     val precision = result.tp / (result.tp + result.fp)
