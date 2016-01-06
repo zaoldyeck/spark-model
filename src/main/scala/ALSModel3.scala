@@ -55,7 +55,9 @@ class ALSModel3 extends ALSModel {
           .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
-        s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
+        val output: String = s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha},${calConfusionMatrix(predictResult).toListString}"
+        Logger.log.warn(output)
+        output
       }
 
       val output_1: String = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
