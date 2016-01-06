@@ -43,10 +43,10 @@ class ALSModel3 extends ALSModel {
       .saveAsTextFile(OUTPUT_PATH)
 
     Logger.log.warn("--->Mean Squared Error = " + mse)
-    Logger.log.warn(this.calConfusionMatrix(predictResult).toString)
+    Logger.log.warn(calConfusionMatrix(predictResult).toString)
   }
 
-  def calConfusionMatrix(predictResult: RDD[PredictResult]): ConfusionMatrixResult = {
+  def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
     val confusionMatrix = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
