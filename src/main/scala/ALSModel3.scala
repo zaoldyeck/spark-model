@@ -18,9 +18,9 @@ import scala.util.{Random, Try}
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
-  private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
-  private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
-  private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
+  private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv"
+  private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv"
+  private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als-play"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
