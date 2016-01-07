@@ -38,7 +38,7 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    Random.shuffle(parametersSeq).foreach(parameters => {
+    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).map(parameters => {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
         case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
@@ -47,7 +47,7 @@ class ALSModel3 extends ALSModel {
       case class Evaluation(output: String, recall: Double) {
         override def toString: String = output
       }
-      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Evaluation = {
+      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = Future {
         Logger.log.warn("Evaluate")
         val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
           .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
@@ -61,27 +61,31 @@ class ALSModel3 extends ALSModel {
         Evaluation(output, evaluation.recall)
       }
 
-      val evaluateModel_1: Evaluation = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-      val evaluateModel_2: Evaluation = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-      val evaluateModel_3: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-      val evaluateModel_4: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+      val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+      val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+      val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+      val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
 
-      val evaluation_1: Evaluation = evaluateModel_1
-      val evaluation_2: Evaluation = evaluateModel_2
-      val evaluation_3: Evaluation = evaluateModel_3
-      val evaluation_4: Evaluation = evaluateModel_4
-      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-      Try {
-        val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-        printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
-          s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
-          s"Average:${"%.4f".format(recalls.sum / recalls.length)}\n" +
-          s"Difference:${"%.4f".format(recalls.max - recalls.min)}\n" +
-          s"--------------------------------------------------------------------------------------------------------\n")
-      } match {
-        case _ => printWriter.close()
+      for {
+        evaluation_1: Evaluation <- evaluateModel_1
+        evaluation_2: Evaluation <- evaluateModel_2
+        evaluation_3: Evaluation <- evaluateModel_3
+        evaluation_4: Evaluation <- evaluateModel_4
+      } yield {
+        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+        Try {
+          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+          printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
+            s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
+            s"Average:${"%.4f".format(recalls.sum / recalls.length)}\n" +
+            s"Difference:${"%.4f".format(recalls.max - recalls.min)}\n" +
+            s"--------------------------------------------------------------------------------------------------------\n")
+        } match {
+          case _ => printWriter.close()
+        }
       }
     })
+    Await.result(Future.sequence(futures), Duration.Inf)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
