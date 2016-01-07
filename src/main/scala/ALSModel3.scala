@@ -29,6 +29,7 @@ class ALSModel3 extends ALSModel {
     val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist
     val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
+    val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
     //delete_out_path.!
 
@@ -39,8 +40,6 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    val semaphore = new Semaphore(10)
-
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).map(parameters => {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
@@ -50,6 +49,7 @@ class ALSModel3 extends ALSModel {
       case class Evaluation(output: String, recall: Double) {
         override def toString: String = output
       }
+
       def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
         semaphore.acquire()
         Future {
