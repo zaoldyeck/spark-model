@@ -28,8 +28,8 @@ class ALSModel3 extends ALSModel {
     val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist
     val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
-    val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
-    delete_out_path.!
+    //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
+    //delete_out_path.!
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
