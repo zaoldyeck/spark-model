@@ -38,7 +38,7 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    Random.shuffle(parametersSeq).foreach(parameters => Await.result({
+    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).map(parameters => {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
         case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
@@ -84,7 +84,8 @@ class ALSModel3 extends ALSModel {
           case _ => printWriter.close()
         }
       }
-    }, Duration.Inf))
+    })
+    Await.result(Future.sequence(futures), Duration.Inf)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
