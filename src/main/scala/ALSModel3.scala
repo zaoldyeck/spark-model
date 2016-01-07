@@ -65,9 +65,7 @@ class ALSModel3 extends ALSModel {
             val output: String = evaluation.toListString
             Logger.log.warn(output)
             Evaluation(output, evaluation.recall)
-          } finally {
-            semaphore.release()
-          }
+          } finally semaphore.release()
         }
       }
 
