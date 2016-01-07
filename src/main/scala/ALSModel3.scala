@@ -7,6 +7,7 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
+import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -39,7 +40,7 @@ class ALSModel3 extends ALSModel {
 
     Random.shuffle(parametersSeq).foreach(parameters => Await.result({
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
-      val split: Prediction = predictionData.randomSplit(Array(0.25, 0.25, 0.25, 0.25)) match {
+      val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
         case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
       }
 
