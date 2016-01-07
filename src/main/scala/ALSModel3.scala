@@ -1,4 +1,5 @@
 import java.io.PrintWriter
+import java.util.concurrent.Semaphore
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -38,6 +39,8 @@ class ALSModel3 extends ALSModel {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
+    val semaphore = new Semaphore(10)
+
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).map(parameters => {
       case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
       val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
@@ -47,18 +50,25 @@ class ALSModel3 extends ALSModel {
       case class Evaluation(output: String, recall: Double) {
         override def toString: String = output
       }
-      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = Future {
-        Logger.log.warn("Evaluate")
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
-          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-          .map(predict => ((predict.user, predict.product), predict.rating))
-          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
+        semaphore.acquire()
+        Future {
+          try {
+            Logger.log.warn("Evaluate")
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+              .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+              .map(predict => ((predict.user, predict.product), predict.rating))
+              .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+            }
+            val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+            val output: String = evaluation.toListString
+            Logger.log.warn(output)
+            Evaluation(output, evaluation.recall)
+          } finally {
+            semaphore.release()
+          }
         }
-        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = evaluation.toListString
-        Logger.log.warn(output)
-        Evaluation(output, evaluation.recall)
       }
 
       val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
