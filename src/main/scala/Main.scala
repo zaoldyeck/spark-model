@@ -4,7 +4,6 @@
 
 import org.apache.log4j.{Level, LogManager}
 import org.apache.spark._
-import org.apache.spark.launcher.SparkLauncher
 
 object Main {
 
@@ -23,8 +22,7 @@ object Main {
   }
 
   def setSparkEnv(): SparkContext = {
-    val conf = new SparkConf().setAppName("SparkAls").set(SparkLauncher.DRIVER_EXTRA_JAVA_OPTIONS,
-      "-Dcom.sun.management.jmxremote.port=12345 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote")
+    val conf = new SparkConf().setAppName("SparkAls")
     new SparkContext(conf)
   }
 }
