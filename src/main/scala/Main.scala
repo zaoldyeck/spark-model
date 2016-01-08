@@ -14,7 +14,7 @@ object Main {
     sc.setCheckpointDir("checkpoint")
     //new ALSModel().run
     //new ALSModel2().run
-    new ALSModel3().run
+    new ALSModel3().run()
     //new KMeansModel().run
     //new LDAModel().run
     //new TestALSModel().run
