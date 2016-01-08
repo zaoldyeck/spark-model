@@ -48,7 +48,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run: Unit = {
+  def run(): Unit = {
     //val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     //val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
