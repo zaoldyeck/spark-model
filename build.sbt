@@ -6,5 +6,6 @@ scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "latest.integration",
-  "org.apache.spark" %% "spark-mllib" % "latest.integration"
+  "org.apache.spark" %% "spark-mllib" % "latest.integration",
+  "org.apache.spark" %% "spark-hive" % "latest.integration"
 )
