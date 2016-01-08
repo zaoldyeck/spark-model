@@ -6,14 +6,14 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.immutable.IndexedSeq
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-import scala.sys.process._
-import scala.util.{Random, Try}
+import scala.util.Random
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -26,8 +26,8 @@ class ALSModel3 extends ALSModel {
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
-    val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist
-    val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist
+    val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
+    val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
@@ -80,16 +80,14 @@ class ALSModel3 extends ALSModel {
         evaluation_4: Evaluation <- evaluateModel_4
       } yield {
         val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-        Try {
+        try {
           val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
           printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
             s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
             s"Average:${"%.4f".format(recalls.sum / recalls.length)}\n" +
             s"Difference:${"%.4f".format(recalls.max - recalls.min)}\n" +
             s"--------------------------------------------------------------------------------------------------------\n")
-        } match {
-          case _ => printWriter.close()
-        }
+        } finally printWriter.close()
       }
     })
     Await.result(Future.sequence(futures), Duration.Inf)
