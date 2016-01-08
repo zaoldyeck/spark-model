@@ -113,10 +113,12 @@ class ALSModel3 extends ALSModel {
             val average: String = "%.4f".format(recalls.sum / recalls.length)
             val difference: String = "%.4f".format(recalls.max - recalls.min)
             val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            printWriter.write(s"$header,$evaluateModel_1\r\n" +
-              s"$header,$evaluateModel_2\r\n" +
-              s"$header,$evaluateModel_3\r\n" +
-              s"$header,$evaluateModel_4\r\n")
+            val result: String = s"$header,$evaluation_1\r\n" +
+              s"$header,$evaluation_2\r\n" +
+              s"$header,$evaluation_3\r\n" +
+              s"$header,$evaluation_4\r\n"
+            printWriter.write(result)
+            Logger.log.warn(result)
           } finally printWriter.close()
         }
     }
