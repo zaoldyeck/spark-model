@@ -33,9 +33,9 @@ class ALSModel3 extends ALSModel {
       "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
       "hdfs://pubgame/user/vincent/spark-als-play"))
 
-  private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
-  private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
-  private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
+  //private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
+  //private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
+  //private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
@@ -66,6 +66,7 @@ class ALSModel3 extends ALSModel {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
+        val outputPath: String = parameters.dataSet.outputPath
         case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
@@ -105,7 +106,7 @@ class ALSModel3 extends ALSModel {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
-          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
           try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
             val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
