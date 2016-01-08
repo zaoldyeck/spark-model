@@ -14,7 +14,7 @@ class FormatData(implicit sc: SparkContext) {
       $"unique_id".cast("Int"),
       $"game_id".cast("Int"))
       //$"saving".cast("Double").when($"saving" > 0, 1).otherwise(2).as("saving"))
-      .filter($"max_login_days".cast("Int") >= 1 and $"max_login_times".cast("Int") >= 2)
+      .where($"max_login_days".cast("Int") >= 1 and $"max_login_times".cast("Int") >= 2)
       .write.parquet("user_game")
   }
 }
