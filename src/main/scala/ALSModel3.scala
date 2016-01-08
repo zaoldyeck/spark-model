@@ -28,8 +28,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   object DataSet {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
-        mappingData(sc.textFile(trainingDataPath)).repartition(20).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
-        mappingData(sc.textFile(predictionDataPath)).repartition(20).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        mappingData(sc.textFile(trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        mappingData(sc.textFile(predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
         outputPath)
     }
   }
@@ -42,7 +42,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     def mapToRDD(path: String): RDD[Rating] = {
       sqlContext.read.parquet(path) map {
         case Row(unique_id: Long, game_id: String, saving: Int) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
-      } repartition 20 persist StorageLevel.MEMORY_AND_DISK_SER_2
+      } persist StorageLevel.MEMORY_AND_DISK_SER_2
     }
   }
 
@@ -64,7 +64,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(10)
+    val semaphore = new Semaphore(4)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
