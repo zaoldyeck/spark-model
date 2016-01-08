@@ -21,9 +21,18 @@ import scala.util.Random
   */
 class ALSModel3 extends ALSModel {
 
-  case class DataSet(trainingDataPath: String, predictionDataPath: String, outputPath: String)
+  case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
-  private val dataSets = List(
+  object DataSet {
+    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
+      this (
+        mappingData(sc.textFile(trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        mappingData(sc.textFile(predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        outputPath)
+    }
+  }
+
+  private val dataSets: List[DataSet] = List(
     DataSet(
       "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
       "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
@@ -44,23 +53,17 @@ class ALSModel3 extends ALSModel {
     //val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val dataSetsRDD: List[DataSetRDD] = dataSets map {
-      case dataSet: DataSet => DataSetRDD(
-        mappingData(sc.textFile(dataSet.trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
-        mappingData(sc.textFile(dataSet.predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
-        dataSet.outputPath)
-    }
     val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
     //delete_out_path.!
 
-    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSetRDD)
+    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
-      dataSetRDD <- dataSetsRDD
-    } yield new AlsParameters(rank, lambda, alpha, dataSetRDD)
+      dataSet <- dataSets
+    } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) =>
@@ -89,7 +92,7 @@ class ALSModel3 extends ALSModel {
               }
               val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
               val output: String = evaluation.toListString
-              Logger.log.warn(output)
+              Logger.log.warn("Single:" + output)
               Evaluation(output, evaluation.recall)
             } finally semaphore.release()
           }
@@ -118,7 +121,7 @@ class ALSModel3 extends ALSModel {
               s"$header,$evaluation_3\r\n" +
               s"$header,$evaluation_4\r\n"
             printWriter.write(result)
-            Logger.log.warn(result)
+            Logger.log.warn("Sum:" + result)
           } finally printWriter.close()
         }
     }
