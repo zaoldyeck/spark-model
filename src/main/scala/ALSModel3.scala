@@ -64,7 +64,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(1)
+    val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
