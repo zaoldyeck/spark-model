@@ -123,13 +123,13 @@ class ALSModel extends Serializable {
     }
 
     def toListString: String = {
-      s"Accuracy:${"%.4f".format(accuracy)}," +
-        s"Precision:${"%.4f".format(precision)}," +
-        s"Recall:${"%.4f".format(recall)}," +
-        s"Fallout:${"%.4f".format(fallout)}," +
-        s"Sensitivity:${"%.4f".format(sensitivity)}," +
-        s"Specificity:${"%.4f".format(specificity)}," +
-        s"F:${"%.4f".format(f)}"
+      s"${"%.4f".format(accuracy)}," +
+        s"${"%.4f".format(precision)}," +
+        s"${"%.4f".format(recall)}," +
+        s"${"%.4f".format(fallout)}," +
+        s"${"%.4f".format(sensitivity)}," +
+        s"${"%.4f".format(specificity)}," +
+        s"${"%.4f".format(f)}"
     }
   }
 
