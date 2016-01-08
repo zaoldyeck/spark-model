@@ -6,6 +6,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spark.storage.StorageLevel
 
 import scala.collection.immutable.IndexedSeq
@@ -23,6 +24,9 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
+  private val sqlContext: SQLContext = new SQLContext(sc)
+
+  /*
   object DataSet {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
@@ -41,6 +45,15 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
       "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
       "hdfs://pubgame/user/vincent/spark-als-play"))
+      */
+  private val dataSets: List[DataSet] = List(
+    DataSet(
+      sqlContext.read.parquet("user_game_als_90") map {
+        case Row(unique_id: String, game_id: String, saving: String) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
+      },
+      sqlContext.read.parquet("user_game_als_not_90") map {
+        case Row(unique_id: String, game_id: String, saving: String) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
+      }, "hdfs://pubgame/user/vincent/spark-als-all"))
 
   //private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
   //private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
