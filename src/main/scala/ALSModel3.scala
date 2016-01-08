@@ -19,12 +19,12 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3 extends ALSModel {
+class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
   object DataSet {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
+    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
         mappingData(sc.textFile(trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
         mappingData(sc.textFile(predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
@@ -48,7 +48,7 @@ class ALSModel3 extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(implicit sc: SparkContext): Unit = {
+  override def run: Unit = {
     //val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     //val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
