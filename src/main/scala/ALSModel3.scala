@@ -51,7 +51,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       sqlContext.read.parquet("user_game_als_90") map {
         case Row(unique_id: String, game_id: String, saving: String) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
       },
-      sqlContext.read.parquet("user_game_als_not_90") map {
+      sqlContext.read.parquet("user_game_not_90") map {
         case Row(unique_id: String, game_id: String, saving: String) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
       }, "hdfs://pubgame/user/vincent/spark-als-all"))
 
