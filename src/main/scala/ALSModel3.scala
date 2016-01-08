@@ -46,7 +46,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
-  private val dataSets: List[DataSet] = List(
+  private lazy val dataSets: List[DataSet] = List(
     DataSet(
       "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
       "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
@@ -56,12 +56,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
       "hdfs://pubgame/user/vincent/spark-als-play"))
 
-  private val dataFrames: List[DataSet] = List(
+  private lazy val dataFrames: List[DataSet] = List(
     DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
-
-  //private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
-  //private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
-  //private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
@@ -100,7 +96,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           Future {
             try {
               Logger.log.warn("Evaluate")
-              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
                 .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
                 .map(predict => ((predict.user, predict.product), predict.rating))
                 .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
