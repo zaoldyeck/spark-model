@@ -20,6 +20,19 @@ import scala.util.Random
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
+
+  case class DataSet(trainingDataPath: String, predictionDataPath: String, outputPath: String)
+
+  private val dataSets = List(
+    DataSet(
+      "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
+      "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
+      "hdfs://pubgame/user/vincent/spark-als"),
+    DataSet(
+      "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
+      "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
+      "hdfs://pubgame/user/vincent/spark-als-play"))
+
   private val TRAINING_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv"
   private val PREDICTION_DATA_PATH: String = "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv"
   private val OUTPUT_PATH: String = "hdfs://pubgame/user/vincent/spark-als"
@@ -27,71 +40,85 @@ class ALSModel3 extends ALSModel {
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
-    val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
-    val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
+    //val trainingData: RDD[Rating] = mappingData(sc.textFile(TRAINING_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
+    //val predictionData: RDD[Rating] = mappingData(sc.textFile(PREDICTION_DATA_PATH)).persist(StorageLevel.MEMORY_AND_DISK_SER_2)
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
+    case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
+    val dataSetsRDD: List[DataSetRDD] = dataSets map {
+      case dataSet: DataSet => DataSetRDD(
+        mappingData(sc.textFile(dataSet.trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        mappingData(sc.textFile(dataSet.predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        dataSet.outputPath)
+    }
     val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
     //delete_out_path.!
 
-    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
+    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSetRDD)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
-    } yield new AlsParameters(rank, lambda, alpha)
+      dataSetRDD <- dataSetsRDD
+    } yield new AlsParameters(rank, lambda, alpha, dataSetRDD)
 
-    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).map(parameters => {
-      case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
-      val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
-        case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
-      }
-
-      case class Evaluation(output: String, recall: Double) {
-        override def toString: String = output
-      }
-
-      def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
-        semaphore.acquire()
-        Future {
-          try {
-            Logger.log.warn("Evaluate")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
-              .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
-            val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-            val output: String = evaluation.toListString
-            Logger.log.warn(output)
-            Evaluation(output, evaluation.recall)
-          } finally semaphore.release()
+    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
+      case (parameters, index) =>
+        val trainingData: RDD[Rating] = parameters.dataSet.trainingData
+        val predictionData: RDD[Rating] = parameters.dataSet.predictionData
+        case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
+        val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
+          case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
         }
-      }
 
-      val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-      val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-      val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-      val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+        case class Evaluation(output: String, recall: Double) {
+          override def toString: String = output
+        }
 
-      for {
-        evaluation_1: Evaluation <- evaluateModel_1
-        evaluation_2: Evaluation <- evaluateModel_2
-        evaluation_3: Evaluation <- evaluateModel_3
-        evaluation_4: Evaluation <- evaluateModel_4
-      } yield {
-        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
-        try {
-          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-          printWriter.write(s"rank:${parameters.rank},lambda:${parameters.lambda},alpha:${parameters.alpha}\n" +
-            s"$evaluation_1\n$evaluation_2\n$evaluation_3\n$evaluation_4\n" +
-            s"Average:${"%.4f".format(recalls.sum / recalls.length)}\n" +
-            s"Difference:${"%.4f".format(recalls.max - recalls.min)}\n" +
-            s"--------------------------------------------------------------------------------------------------------\n")
-        } finally printWriter.close()
-      }
-    })
+        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
+          semaphore.acquire()
+          Future {
+            try {
+              Logger.log.warn("Evaluate")
+              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 50, parameters.lambda, parameters.alpha)
+                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+                .map(predict => ((predict.user, predict.product), predict.rating))
+                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+              }
+              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+              val output: String = evaluation.toListString
+              Logger.log.warn(output)
+              Evaluation(output, evaluation.recall)
+            } finally semaphore.release()
+          }
+        }
+
+        val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+        val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+        val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+        val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+
+        for {
+          evaluation_1: Evaluation <- evaluateModel_1
+          evaluation_2: Evaluation <- evaluateModel_2
+          evaluation_3: Evaluation <- evaluateModel_3
+          evaluation_4: Evaluation <- evaluateModel_4
+        } yield {
+          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$OUTPUT_PATH/${System.nanoTime}")))
+          try {
+            //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
+            val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+            val average: String = "%.4f".format(recalls.sum / recalls.length)
+            val difference: String = "%.4f".format(recalls.max - recalls.min)
+            val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
+            printWriter.write(s"$header,$evaluateModel_1\r\n" +
+              s"$header,$evaluateModel_2\r\n" +
+              s"$header,$evaluateModel_3\r\n" +
+              s"$header,$evaluateModel_4\r\n")
+          } finally printWriter.close()
+        }
+    }
     Await.result(Future.sequence(futures), Duration.Inf)
   }
 
