@@ -10,11 +10,12 @@ class FormatData(implicit sc: SparkContext) {
   def run(): Unit = {
     val sql = new SQLContext(sc)
     import sql.implicits._
-    new HiveContext(sc).table("pg_with_gd_target_data").select(
-      $"unique_id".cast("Int"),
-      $"game_id".cast("Int"))
+    new HiveContext(sc).table("pg_with_gd_target_data")
       //$"saving".cast("Double").when($"saving" > 0, 1).otherwise(2).as("saving"))
-      .where($"max_login_days".cast("Int") >= 1 and $"max_login_times".cast("Int") >= 2)
+      .filter($"max_login_days".cast("Int") >= 1 and $"max_login_times".cast("Int") >= 2)
+      .select(
+        $"unique_id".cast("Int"),
+        $"game_id".cast("Int"))
       .write.parquet("user_game")
   }
 }
