@@ -104,9 +104,9 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           override def toString: String = output
         }
 
-        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
+        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Evaluation = {
           //semaphore.acquire()
-          Future {
+          //Future {
             //try {
             Logger.log.warn("Evaluate")
             val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
@@ -120,13 +120,13 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
             Logger.log.warn("Single:" + output)
             Evaluation(output, evaluation.recall)
             //} finally semaphore.release()
-          }
+          //}
         }
 
-        val evaluateModel_1: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._2, split._3, split._4), split._1)
-        val evaluateModel_2: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._3, split._4), split._2)
-        val evaluateModel_3: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._2, split._4), split._3)
-        val evaluateModel_4: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
+        val evaluateModel_1: Evaluation = evaluateModel(sc.union(trainingData, split._2, split._3, split._4), split._1)
+        val evaluateModel_2: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._3, split._4), split._2)
+        val evaluateModel_3: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._4), split._3)
+        val evaluateModel_4: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
 
         val eventualUnit: Future[Unit] = for {
           evaluation_1: Evaluation <- evaluateModel_1
@@ -134,7 +134,6 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
-          /*
           val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
           Try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
@@ -151,7 +150,6 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           } match {
             case _ => printWriter.close()
           }
-          */
         }
         Await.result(eventualUnit, Duration.Inf)
     }
