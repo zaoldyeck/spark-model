@@ -128,12 +128,12 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val evaluateModel_3: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._4), split._3)
         val evaluateModel_4: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
 
-        val eventualUnit: Future[Unit] = for {
-          evaluation_1: Evaluation <- evaluateModel_1
-          evaluation_2: Evaluation <- evaluateModel_2
-          evaluation_3: Evaluation <- evaluateModel_3
-          evaluation_4: Evaluation <- evaluateModel_4
-        } yield {
+        //val eventualUnit: Future[Unit] = for {
+        val  evaluation_1: Evaluation = evaluateModel_1
+        val  evaluation_2: Evaluation = evaluateModel_2
+        val  evaluation_3: Evaluation = evaluateModel_3
+        val  evaluation_4: Evaluation = evaluateModel_4
+        //} yield {
           val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
           Try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
@@ -150,8 +150,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           } match {
             case _ => printWriter.close()
           }
-        }
-        Await.result(eventualUnit, Duration.Inf)
+        //}
+        //Await.result(eventualUnit, Duration.Inf)
     }
   }
 
