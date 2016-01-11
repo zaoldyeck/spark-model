@@ -47,21 +47,21 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   }
 
   private lazy val dataSets: List[DataSet] = List(
+    /*
+          DataSet(
+            "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
+            "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
+            "hdfs://pubgame/user/vincent/spark-als")
         DataSet(
-          "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
-          "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-          "hdfs://pubgame/user/vincent/spark-als")
-  /*
-      DataSet(
-          "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
-          "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
-          "hdfs://pubgame/user/vincent/spark-als-play")
-
+            "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
+            "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
+            "hdfs://pubgame/user/vincent/spark-als-play")
+  */
     DataSet(
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
       "hdfs://pubgame/user/vincent/spark-als-78")
-      */
+
   )
 
   private lazy val dataFrames: List[DataSet] = List(
@@ -72,7 +72,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(10)
+    //val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
@@ -83,7 +83,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       dataSet <- dataSets
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
-    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
+    //val futures: IndexedSeq[Future[Unit]] =
+      Random.shuffle(parametersSeq).zipWithIndex foreach {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
@@ -98,9 +99,9 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         }
 
         def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
-          semaphore.acquire()
+          //semaphore.acquire()
           Future {
-            try {
+            //try {
               Logger.log.warn("Evaluate")
               val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
                 .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
@@ -112,7 +113,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
               val output: String = evaluation.toListString
               Logger.log.warn("Single:" + output)
               Evaluation(output, evaluation.recall)
-            } finally semaphore.release()
+            //} finally semaphore.release()
           }
         }
 
@@ -121,7 +122,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
         val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
 
-        for {
+        val eventualUnit: Future[Unit] = for {
           evaluation_1: Evaluation <- evaluateModel_1
           evaluation_2: Evaluation <- evaluateModel_2
           evaluation_3: Evaluation <- evaluateModel_3
@@ -142,8 +143,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
             Logger.log.warn("Sum:" + result)
           } finally printWriter.close()
         }
+        Await.result(eventualUnit, Duration.Inf)
     }
-    Await.result(Future.sequence(futures), Duration.Inf)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
