@@ -47,16 +47,16 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   }
 
   private lazy val dataSets: List[DataSet] = List(
-    /*
       DataSet(
         "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
         "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
         "hdfs://pubgame/user/vincent/spark-als"),
-      DataSet(
+      /*
+    DataSet(
         "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
         "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
         "hdfs://pubgame/user/vincent/spark-als-play")
-        */
+      */
     DataSet(
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
@@ -71,7 +71,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(9)
+    val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
