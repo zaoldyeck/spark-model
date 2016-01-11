@@ -134,6 +134,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
+          /*
           val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
           Try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
@@ -150,6 +151,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           } match {
             case _ => printWriter.close()
           }
+          */
         }
         Await.result(eventualUnit, Duration.Inf)
     }
