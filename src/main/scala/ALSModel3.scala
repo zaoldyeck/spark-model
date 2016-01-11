@@ -79,8 +79,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
-      dataSet <- dataSets
-    } yield new AlsParameters(rank, lambda, alpha, dataSet)
+      //dataSet <- dataSets
+    } yield new AlsParameters(rank, lambda, alpha, dataSets(0))
 
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) =>
