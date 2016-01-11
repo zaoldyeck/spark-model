@@ -48,20 +48,23 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   private lazy val dataSets: List[DataSet] = List(
     /*
-          DataSet(
-            "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
-            "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-            "hdfs://pubgame/user/vincent/spark-als")
-        DataSet(
-            "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
-            "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
-            "hdfs://pubgame/user/vincent/spark-als-play")
-  */
+      DataSet(
+        "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
+        "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
+        "hdfs://pubgame/user/vincent/spark-als"),
+      DataSet(
+        "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
+        "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
+        "hdfs://pubgame/user/vincent/spark-als-play"),
+      DataSet(
+        "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
+        "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
+        "hdfs://pubgame/user/vincent/spark-als-78")
+        */
     DataSet(
-      "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
-      "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
-      "hdfs://pubgame/user/vincent/spark-als-78")
-
+      "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
+      "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
+      "hdfs://pubgame/user/vincent/spark-als-90-all")
   )
 
   private lazy val dataFrames: List[DataSet] = List(
@@ -80,11 +83,11 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
-      dataSet <- dataFrames//dataSets
+      dataSet <- dataSets
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
     //val futures: IndexedSeq[Future[Unit]] =
-      Random.shuffle(parametersSeq).zipWithIndex foreach {
+    Random.shuffle(parametersSeq).zipWithIndex foreach {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
@@ -102,17 +105,17 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           //semaphore.acquire()
           Future {
             //try {
-              Logger.log.warn("Evaluate")
-              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-                .map(predict => ((predict.user, predict.product), predict.rating))
-                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-              }
-              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-              val output: String = evaluation.toListString
-              Logger.log.warn("Single:" + output)
-              Evaluation(output, evaluation.recall)
+            Logger.log.warn("Evaluate")
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+              .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+              .map(predict => ((predict.user, predict.product), predict.rating))
+              .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+            }
+            val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+            val output: String = evaluation.toListString
+            Logger.log.warn("Single:" + output)
+            Evaluation(output, evaluation.recall)
             //} finally semaphore.release()
           }
         }
