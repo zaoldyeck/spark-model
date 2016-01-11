@@ -1,5 +1,5 @@
 import java.io.PrintWriter
-import java.util.concurrent.{Executors, Semaphore}
+import java.util.concurrent.Semaphore
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -13,7 +13,7 @@ import scala.collection.immutable.IndexedSeq
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContextExecutorService, ExecutionContext, Await, Future}
+import scala.concurrent.{Await, Future}
 import scala.sys.process._
 import scala.util.Random
 
@@ -71,7 +71,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(4)
+    val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
@@ -82,7 +82,6 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       dataSet <- dataSets
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
-    val executorService: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(10))
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
@@ -98,22 +97,22 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         }
 
         def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
-          //semaphore.acquire()
+          semaphore.acquire()
           Future {
-            //try {
-            Logger.log.warn("Evaluate")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-              .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
-            val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-            val output: String = evaluation.toListString
-            Logger.log.warn("Single:" + output)
-            Evaluation(output, evaluation.recall)
-            //} finally semaphore.release()
-          }(executorService)
+            try {
+              Logger.log.warn("Evaluate")
+              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+                .map(predict => ((predict.user, predict.product), predict.rating))
+                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+              }
+              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+              val output: String = evaluation.toListString
+              Logger.log.warn("Single:" + output)
+              Evaluation(output, evaluation.recall)
+            } finally semaphore.release()
+          }
         }
 
         val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
