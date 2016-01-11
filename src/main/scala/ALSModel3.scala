@@ -50,17 +50,18 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         DataSet(
           "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
           "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-          "hdfs://pubgame/user/vincent/spark-als"),
+          "hdfs://pubgame/user/vincent/spark-als")
   /*
       DataSet(
           "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
           "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
           "hdfs://pubgame/user/vincent/spark-als-play")
-        */
+
     DataSet(
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
       "hdfs://pubgame/user/vincent/spark-als-78")
+      */
   )
 
   private lazy val dataFrames: List[DataSet] = List(
