@@ -46,7 +46,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
-  private lazy val dataSets: List[DataSet] = List(
+  private val dataSets: List[DataSet] = List(
     /*
         DataSet(
           "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
@@ -79,8 +79,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
-      //dataSet <- dataSets
-    } yield new AlsParameters(rank, lambda, alpha, dataSets(0))
+      dataSet <- dataSets
+    } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) =>
