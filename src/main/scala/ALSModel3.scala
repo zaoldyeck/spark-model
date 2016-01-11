@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.sys.process._
-import scala.util.Random
+import scala.util.{Try, Random}
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -48,10 +48,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   private lazy val dataSets: List[DataSet] = List(
 
-      DataSet(
-        "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
-        "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-        "hdfs://pubgame/user/vincent/spark-als")
+    DataSet(
+      "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
+      "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
+      "hdfs://pubgame/user/vincent/spark-als")
     /*
         DataSet(
           "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
@@ -62,12 +62,12 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
           "hdfs://pubgame/user/vincent/spark-als-78")
           */
-  /*
-    DataSet(
-      "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
-      "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
-      "hdfs://pubgame/user/vincent/spark-als-90-all")
-      */
+    /*
+      DataSet(
+        "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
+        "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
+        "hdfs://pubgame/user/vincent/spark-als-90-all")
+        */
   )
 
   private lazy val dataFrames: List[DataSet] = List(
@@ -135,7 +135,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
           val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-          try {
+          Try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
             val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
             val average: String = "%.4f".format(recalls.sum / recalls.length)
@@ -147,7 +147,9 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
               s"$header,$evaluation_4\r\n"
             printWriter.write(result)
             Logger.log.warn("Sum:" + result)
-          } finally printWriter.close()
+          } match {
+            case _ => printWriter.close()
+          }
         }
         Await.result(eventualUnit, Duration.Inf)
     }
