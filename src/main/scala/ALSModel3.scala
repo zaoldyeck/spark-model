@@ -123,10 +123,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           }
         }
 
-        val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-        val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-        val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-        val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+        val evaluateModel_1: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._2, split._3, split._4), split._1)
+        val evaluateModel_2: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._3, split._4), split._2)
+        val evaluateModel_3: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._2, split._4), split._3)
+        val evaluateModel_4: Future[Evaluation] = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
 
         val eventualUnit: Future[Unit] = for {
           evaluation_1: Evaluation <- evaluateModel_1
