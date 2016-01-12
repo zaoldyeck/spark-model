@@ -6,7 +6,6 @@ import org.apache.log4j.{Level, LogManager}
 import org.apache.spark._
 
 object Main {
-
   def main(args: Array[String]) {
     LogManager.getRootLogger.setLevel(Level.WARN)
     implicit val sc: SparkContext = new SparkContext(new SparkConf())
