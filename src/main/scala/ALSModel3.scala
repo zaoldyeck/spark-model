@@ -116,6 +116,26 @@ class ALSModel3 extends ALSModel {
           }
         }
 
+        def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
+          val result: ConfusionMatrix = predictResult.map {
+            case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
+            case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
+            case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
+            case _ ⇒ ConfusionMatrix(tn = 1)
+          }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
+
+          val p: Double = result.tp + result.fn
+          val n: Double = result.fp + result.tn
+          val accuracy: Double = (result.tp + result.tn) / (p + n)
+          val precision: Double = result.tp / (result.tp + result.fp)
+          val recall: Double = result.tp / p
+          val fallout: Double = result.fp / n
+          val sensitivity: Double = result.tp / (result.tp + result.fn)
+          val specificity: Double = result.tn / (result.fp + result.tn)
+          val f: Double = 2 * ((precision * recall) / (precision + recall))
+          ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
+        }
+
         val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1, parameters)
         val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2, parameters)
         val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3, parameters)
@@ -151,25 +171,5 @@ class ALSModel3 extends ALSModel {
 
   case class Evaluation(output: String, recall: Double) {
     override def toString: String = output
-  }
-
-  def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
-    val result: ConfusionMatrix = predictResult.map {
-      case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
-      case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
-      case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
-      case _ ⇒ ConfusionMatrix(tn = 1)
-    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
-
-    val p: Double = result.tp + result.fn
-    val n: Double = result.fp + result.tn
-    val accuracy: Double = (result.tp + result.tn) / (p + n)
-    val precision: Double = result.tp / (result.tp + result.fp)
-    val recall: Double = result.tp / p
-    val fallout: Double = result.fp / n
-    val sensitivity: Double = result.tp / (result.tp + result.fn)
-    val specificity: Double = result.tn / (result.fp + result.tn)
-    val f: Double = 2 * ((precision * recall) / (precision + recall))
-    ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 }
