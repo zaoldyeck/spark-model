@@ -19,7 +19,7 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+class ALSModel3 {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
@@ -31,7 +31,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(implicit sc: SparkContext): Unit = {
+  def run(implicit sc: SparkContext): Unit = {
 
     def DataSet_(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       DataSet(
@@ -168,4 +168,55 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     val f: Double = 2 * ((precision * recall) / (precision + recall))
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
+
+  def dropHeader(data: RDD[String]): RDD[String] = {
+    data.mapPartitionsWithIndex {
+      case (0, lines) if lines.hasNext =>
+        lines.next
+        lines
+      case (_, lines) => lines
+    }
+  }
+
+  def mappingData(data: RDD[String]): RDD[Rating] = {
+    Logger.log.warn("Mapping...")
+
+    dropHeader(data) flatMap {
+      _.split(",") match {
+        case Array(pub_id, game_id, saving) =>
+          val gameIdNoQuotes = game_id.replace("\"", "")
+          val rating = saving.toDouble
+          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
+    }
+  }
+
+  case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
+
+  case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
+    override def toString: String = {
+      s"\n" +
+        s"Accuracy = $accuracy\n" +
+        s"Precision = $precision\n" +
+        s"Recall = $recall\n" +
+        s"Fallout = $fallout\n" +
+        s"Sensitivity = $sensitivity\n" +
+        s"Specificity = $specificity\n" +
+        s"F = $f"
+    }
+
+    def toListString: String = {
+      s"${"%.4f".format(accuracy)}," +
+        s"${"%.4f".format(precision)}," +
+        s"${"%.4f".format(recall)}," +
+        s"${"%.4f".format(fallout)}," +
+        s"${"%.4f".format(sensitivity)}," +
+        s"${"%.4f".format(specificity)}," +
+        s"${"%.4f".format(f)}"
+    }
+  }
+
 }
