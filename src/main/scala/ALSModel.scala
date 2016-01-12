@@ -18,7 +18,7 @@ class ALSModel(implicit sc: SparkContext) {
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "./spark-als"
 
-  def run: Unit = {
+  def run(): Unit = {
 
     // Load and parse the data
     Logger.log.warn("Load into RDD...")
