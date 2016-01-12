@@ -122,6 +122,7 @@ class ALSModel(sc: SparkContext) extends Serializable {
         s"F = $f"
     }
 
+    /*
     val toListString: String = {
       s"${"%.4f".format(accuracy)}," +
         s"${"%.4f".format(precision)}," +
@@ -131,6 +132,7 @@ class ALSModel(sc: SparkContext) extends Serializable {
         s"${"%.4f".format(specificity)}," +
         s"${"%.4f".format(f)}"
     }
+    */
   }
 
   val calConfusionMatrix = (data: RDD[((Int, Int), (Double, Double))]) => {
