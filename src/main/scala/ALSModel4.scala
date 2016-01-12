@@ -22,7 +22,6 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     Logger.log.warn("Total Size:" + rdd.count)
-    case class Split(training: RDD[Rating], Prediction: RDD[Rating])
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
 
@@ -45,12 +44,12 @@ class ALSModel4 extends Serializable {
           .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
-        val header: String = ""//s"${parameter.rank},${parameter.lambda},${parameter.alpha}"
-        val result: String = header + "," + calConfusionMatrix(predictResult).toListString
+        val header: String = "" //s"${parameter.rank},${parameter.lambda},${parameter.alpha}"
+      val result: String = header + "," + calConfusionMatrix(predictResult).toListString
         Logger.log.warn("Result:" + result)
         val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
         try {
-          printWriter.append(result)
+          printWriter.write(result)
         } catch {
           case e: Exception => Logger.log.error(e.printStackTrace())
         } finally printWriter.close()
