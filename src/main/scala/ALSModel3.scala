@@ -28,8 +28,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   object DataSet {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
-        mappingData(sc.textFile(trainingDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
-        mappingData(sc.textFile(predictionDataPath)).persist(StorageLevel.MEMORY_AND_DISK_SER_2),
+        mappingData(sc.textFile(trainingDataPath)).persist,
+        mappingData(sc.textFile(predictionDataPath)).persist,
         outputPath)
     }
   }
