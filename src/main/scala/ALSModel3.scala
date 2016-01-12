@@ -155,7 +155,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       } finally semaphore.release()
     } recover {
       case e =>
-        Logger.log.warn(e)
+        Logger.log.error(e)
         Evaluation("", 0)
     }
   }
