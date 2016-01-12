@@ -67,7 +67,7 @@ class ALSModel3 extends ALSModel {
       */
     DataSet(
       "s3n://data.emr/train78ok.csv",
-      "s3n://data.emr/test78ok.csv",De
+      "s3n://data.emr/test78ok.csv",
       "/home/hadoop/output/als-78")
   )
 
