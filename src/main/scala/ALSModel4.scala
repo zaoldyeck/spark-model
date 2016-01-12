@@ -33,9 +33,9 @@ class ALSModel4 extends Serializable {
     } yield new AlsParameters(rank, lambda, alpha)
 
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
-      case (parameters, index) => Future {
+      case (parameters, index) =>
         rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
-          case Array(training, prediction) =>
+          case Array(training, prediction) => Future {
             Logger.log.warn("Predict...")
             //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
             val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, parameters.rank, parameters.lambda, parameters.alpha)
@@ -53,8 +53,8 @@ class ALSModel4 extends Serializable {
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
             } finally printWriter.close()
+          }
         }
-      }
     }
     Await.result(Future.sequence(futures), Duration.Inf)
   }
