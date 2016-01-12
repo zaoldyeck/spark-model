@@ -20,7 +20,7 @@ import scala.util.{Try, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable{
+class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable {
   private val sqlContext: SQLContext = new SQLContext(sc)
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
@@ -56,7 +56,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable{
     DataSet(
       "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
       "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
-      "hdfs://pubgame/user/vincent/spark-als-play")/*,
+      "hdfs://pubgame/user/vincent/spark-als-play") /*,
     DataSet(
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
       "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
@@ -128,10 +128,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable{
           //}
         }
 
-        val evaluateModel_1: Evaluation = evaluateModel(sc.union(trainingData, split._2, split._3, split._4), split._1)
-        val evaluateModel_2: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._3, split._4), split._2)
-        val evaluateModel_3: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._4), split._3)
-        val evaluateModel_4: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
+        val evaluateModel_1: Evaluation = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
+        val evaluateModel_2: Evaluation = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
+        val evaluateModel_3: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
+        val evaluateModel_4: Evaluation = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
 
         //val eventualUnit: Future[Unit] = for {
         val evaluation_1: Evaluation = evaluateModel_1
