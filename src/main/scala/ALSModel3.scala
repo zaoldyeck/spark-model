@@ -50,7 +50,7 @@ class ALSModel3 extends ALSModel {
   }
   */
 
-  lazy val dataSets: List[DataSet] = List(
+  lazy val dataSets = () => List(
     /*
       DataSet(
         "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
