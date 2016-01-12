@@ -35,7 +35,7 @@ class ALSModel3 extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(implicit sc: SparkContext): Unit = {
+  override def run(sc: SparkContext): Unit = {
     lazy val sqlContext: SQLContext = new SQLContext(sc)
 
     object DataFrame_ {
