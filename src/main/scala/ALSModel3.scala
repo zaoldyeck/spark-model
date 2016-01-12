@@ -20,72 +20,60 @@ import scala.util.{Failure, Success, Random}
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3 extends ALSModel {
-  /*
-  private val sqlContext: SQLContext = new SQLContext(sc)
-  */
   val semaphore = new Semaphore(10)
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
-  /*
   object DataSet {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
+    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
       this (
         mappingData(sc.textFile(trainingDataPath)).persist,
         mappingData(sc.textFile(predictionDataPath)).persist,
         outputPath)
     }
   }
-  */
 
-  /*
-  object DataFrame_ {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
-      DataSet(mapToRDD(trainingDataPath), mapToRDD(predictionDataPath), outputPath)
-    }
-
-    def mapToRDD(path: String): RDD[Rating] = {
-      sqlContext.read.parquet(path) map {
-        case Row(unique_id: Long, game_id: String, saving: Int) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
-      } persist()
-    }
-  }
-  */
-
-  /*
-  val dataSets: List[DataSet] = List(
-    /*
-      DataSet(
-        "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
-        "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-        "hdfs://pubgame/user/vincent/spark-als"),
-      DataSet(
-        "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
-        "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
-        "hdfs://pubgame/user/vincent/spark-als-play"),
-    DataSet(
-      "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
-      "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
-      "hdfs://pubgame/user/vincent/spark-als-90-all")
-      */
-    DataSet(
-      "s3n://data.emr/train78ok.csv",
-      "s3n://data.emr/test78ok.csv",
-      "/home/hadoop/output/als-78")
-  )
-  */
-
-  /*
-  private lazy val dataFrames: List[DataSet] = List(
-    DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
-    */
-
-  /*
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
+    val sqlContext: SQLContext = new SQLContext(sc)
+
+    object DataFrame_ {
+      def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
+        DataSet(mapToRDD(trainingDataPath), mapToRDD(predictionDataPath), outputPath)
+      }
+
+      def mapToRDD(path: String): RDD[Rating] = {
+        sqlContext.read.parquet(path) map {
+          case Row(unique_id: Long, game_id: String, saving: Int) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
+        } persist()
+      }
+    }
+
+    val dataSets: List[DataSet] = List(
+      /*
+        DataSet(
+          "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
+          "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
+          "hdfs://pubgame/user/vincent/spark-als"),
+        DataSet(
+          "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
+          "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
+          "hdfs://pubgame/user/vincent/spark-als-play"),
+      DataSet(
+        "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
+        "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
+        "hdfs://pubgame/user/vincent/spark-als-90-all")
+        */
+      DataSet(
+        "s3n://data.emr/train78ok.csv",
+        "s3n://data.emr/test78ok.csv",
+        "/home/hadoop/output/als-78")
+    )
+
+    val dataFrames: List[DataSet] = List(
+      DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
-    case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
     val parametersSeq: IndexedSeq[AlsParameters] = for {
@@ -142,7 +130,7 @@ class ALSModel3 extends ALSModel {
     override def toString: String = output
   }
 
-  val evaluateModel = (trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters) => {
+  def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
     semaphore.acquire()
     Future {
       try {
@@ -165,7 +153,7 @@ class ALSModel3 extends ALSModel {
     }
   }
 
-  def calConfusionMatrix(predictResult: RDD[PredictResult]): ConfusionMatrixResult = {
+  def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
     val result: ConfusionMatrix = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
@@ -184,5 +172,4 @@ class ALSModel3 extends ALSModel {
     val f: Double = 2 * ((precision * recall) / (precision + recall))
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
-  */
 }
