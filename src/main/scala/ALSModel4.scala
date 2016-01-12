@@ -38,23 +38,6 @@ class ALSModel4 extends Serializable {
           } finally printWriter.close()
       }
     }
-
-
-
-    val rddOnly90: RDD[Rating] = rdd.filter(_.product == 90)
-    Logger.log.warn("90 Size:" + rddOnly90.count)
-    rddOnly90.foreach(prediction => {
-      Logger.log.warn("Predict...")
-      //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
-      val result: Double = ALS.trainImplicit(rdd, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
-      Logger.log.warn("Result:" + prediction.rating + "," + result)
-      val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
-      try {
-        printWriter.write(prediction.rating + "," + result.toString)
-      } catch {
-        case e: Exception => Logger.log.error(e.printStackTrace())
-      } finally printWriter.close()
-    })
   }
 
   def dropHeader(data: RDD[String]): RDD[String] = {
