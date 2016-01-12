@@ -17,7 +17,7 @@ class ALSModel4(implicit sc: SparkContext) extends ALSModel3 {
 
   override def run(): Unit = {
     val futures: List[Future[Unit]] = dataSets.map(dataSet => evaluateModel(dataSet.trainingData, dataSet.predictionData, AlsParameters(dataSet = dataSet)) map {
-      case Evaluation(output, recall) => Logger.log.warn(output)
+      case Evaluation(output, recall) => //Logger.log.warn(output)
     })
     Await.result(Future.sequence(futures), Duration.Inf)
   }
