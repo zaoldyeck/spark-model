@@ -15,8 +15,8 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val data: Array[Rating] = mappingData(sc.textFile(DataPath)).collect
     Logger.log.warn("Total Size:" + data.length)
-    val rddOnly90: Array[Rating] = data.filter(_.product == 90)
-    Logger.log.warn("90 Size:" + rddOnly90.length)
+    val rddOnly90: RDD[Rating] = sc.parallelize(data.filter(_.product == 90))
+    Logger.log.warn("90 Size:" + rddOnly90.count)
     rddOnly90.foreach(prediction => {
       Logger.log.warn("Predict...")
       val trainingRDD: RDD[Rating] = sc.parallelize(data.filter(rating => rating.user != prediction.user && rating.product != prediction.product))
