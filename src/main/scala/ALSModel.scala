@@ -79,7 +79,7 @@ class ALSModel extends Serializable {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
-  val dropHeader = (data: RDD[String]) => {
+  def dropHeader(data: RDD[String]): RDD[String] = {
     data.mapPartitionsWithIndex {
       case (0, lines) if lines.hasNext =>
         lines.next
@@ -88,7 +88,7 @@ class ALSModel extends Serializable {
     }
   }
 
-  val mappingData = (data: RDD[String]) => {
+  def mappingData(data: RDD[String]): RDD[Rating] = {
     Logger.log.warn("Mapping...")
 
     dropHeader(data) flatMap {

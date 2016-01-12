@@ -22,20 +22,19 @@ import scala.util.Random
 class ALSModel3 extends ALSModel {
   val semaphore = new Semaphore(10)
 
-  case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-
-  object DataSet {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
-      this (
-        mappingData(sc.textFile(trainingDataPath)).persist,
-        mappingData(sc.textFile(predictionDataPath)).persist,
-        outputPath)
-    }
-  }
-
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(sc: SparkContext): Unit = {
+  override def run(implicit sc: SparkContext): Unit = {
+    case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
+    object DataSet {
+      def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
+        this (
+          mappingData(sc.textFile(trainingDataPath)).persist,
+          mappingData(sc.textFile(predictionDataPath)).persist,
+          outputPath)
+      }
+    }
+
     lazy val sqlContext: SQLContext = new SQLContext(sc)
 
     object DataFrame_ {
@@ -110,7 +109,7 @@ class ALSModel3 extends ALSModel {
               Evaluation(output, evaluation.recall)
             } finally semaphore.release()
           } recover {
-            case e =>
+            case e: Exception =>
               Logger.log.error(e)
               Evaluation("", 0)
           }
@@ -172,4 +171,5 @@ class ALSModel3 extends ALSModel {
   case class Evaluation(output: String, recall: Double) {
     override def toString: String = output
   }
+
 }
