@@ -7,7 +7,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel(sc: SparkContext) extends Serializable {
+class ALSModel {
   private val TRAINING_DATA_IN_PATH = "s3n://data.emr/pg_user_game_90_training_v3.csv"
   private val TEST_DATA_IN_PATH = "s3n://data.emr/pg_user_game_90_other.csv"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
@@ -18,7 +18,7 @@ class ALSModel(sc: SparkContext) extends Serializable {
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "./spark-als"
 
-  def run(): Unit = {
+  def run(sc: SparkContext): Unit = {
 
     // Load and parse the data
     Logger.log.warn("Load into RDD...")

@@ -10,7 +10,7 @@ object Main {
     LogManager.getRootLogger.setLevel(Level.WARN)
     val sc: SparkContext = new SparkContext(new SparkConf())
     sc.setCheckpointDir("checkpoint")
-    new ALSModel(sc).run()
+    new ALSModel().run(sc)
     //new ALSModel2(sc).run
     //new ALSModel3(sc).run()
     //new ALSModel4(sc).run()
