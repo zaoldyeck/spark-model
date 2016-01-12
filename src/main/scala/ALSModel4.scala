@@ -32,30 +32,28 @@ class ALSModel4 extends Serializable {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    Random.shuffle(parametersSeq).zipWithIndex foreach {
-      case (parameters, index) =>
-        rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
-          case Array(training, prediction) =>
-            Logger.log.warn("Predict...")
-            //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, parameters.rank, parameters.lambda, parameters.alpha)
-              .predict(prediction.map(rating => (rating.user, rating.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
-            val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: String = header + "," + calConfusionMatrix(predictResult).toListString
-            Logger.log.warn("Result:" + result)
-            val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
-            try {
-              printWriter.append(result)
-            } catch {
-              case e: Exception => Logger.log.error(e.printStackTrace())
-            } finally printWriter.close()
+
+    rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
+      case Array(training, prediction) =>
+        Logger.log.warn("Predict...")
+        val parameter: AlsParameters = Random.shuffle(parametersSeq).head
+        //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, parameter.rank, parameter.lambda, parameter.alpha)
+          .predict(prediction.map(rating => (rating.user, rating.product)))
+          .map(predict => ((predict.user, predict.product), predict.rating))
+          .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
+          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
+        val header: String = s"${parameter.rank},${parameter.lambda},${parameter.alpha}"
+        val result: String = header + "," + calConfusionMatrix(predictResult).toListString
+        Logger.log.warn("Result:" + result)
+        val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
+        try {
+          printWriter.append(result)
+        } catch {
+          case e: Exception => Logger.log.error(e.printStackTrace())
+        } finally printWriter.close()
     }
-    //Await.result(Future.sequence(futures), Duration.Inf)
   }
 
   def dropHeader(data: RDD[String]): RDD[String] = {
