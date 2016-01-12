@@ -34,6 +34,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
+  /*
   object DataFrame_ {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       DataSet(mapToRDD(trainingDataPath), mapToRDD(predictionDataPath), outputPath)
@@ -45,6 +46,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       } persist StorageLevel.MEMORY_AND_DISK_SER_2
     }
   }
+  */
 
   private lazy val dataSets: List[DataSet] = List(
 
@@ -70,8 +72,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         */
   )
 
+  /*
   private lazy val dataFrames: List[DataSet] = List(
     DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
+    */
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
