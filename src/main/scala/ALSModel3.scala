@@ -153,6 +153,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         Logger.log.warn("Single:" + output)
         Evaluation(output, evaluation.recall)
       } finally semaphore.release()
+    } onFailure {
+      case e => Logger.log.warn(e)
     }
   }
 
