@@ -45,7 +45,7 @@ class ALSModel4 extends Serializable {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: String = header + calConfusionMatrix(predictResult).toListString
+            val result: String = header + "," + calConfusionMatrix(predictResult).toListString
             Logger.log.warn("Result:" + result)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
             try {
