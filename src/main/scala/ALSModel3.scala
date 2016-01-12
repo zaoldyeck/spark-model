@@ -137,7 +137,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     override def toString: String = output
   }
 
-  def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
+  val evaluateModel = (trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters) => {
     semaphore.acquire()
     Future {
       try {
@@ -156,7 +156,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
-  def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
+  val calConfusionMatrix = (predictResult: => RDD[PredictResult]) => {
     val result: ConfusionMatrix = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
