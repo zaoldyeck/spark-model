@@ -7,7 +7,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/30.
   */
-class ALSModel2(implicit sc: SparkContext) extends ALSModel {
+class ALSModel2(sc: SparkContext) extends ALSModel(sc) {
   private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_has_login_days.csv"
   private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_has_login_days.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als2"

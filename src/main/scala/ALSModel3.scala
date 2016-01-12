@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+class ALSModel3(sc: SparkContext) extends ALSModel(sc) {
   /*
   private val sqlContext: SQLContext = new SQLContext(sc)
   */
