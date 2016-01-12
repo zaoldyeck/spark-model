@@ -7,7 +7,7 @@ import scala.concurrent.{Await, Future}
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
-class ALSModel4(implicit sc: SparkContext) extends ALSModel3 {
+class ALSModel4 extends ALSModel3 {
   override val dataSets: List[DataSet] = List(
     DataSet(
       "s3n://data.emr/train78ok.csv",
@@ -15,7 +15,7 @@ class ALSModel4(implicit sc: SparkContext) extends ALSModel3 {
       "/home/hadoop/output/als-78")
   )
 
-  override def run(): Unit = {
+  override def run(implicit sc: SparkContext): Unit = {
     val futures: List[Future[Unit]] = dataSets.map(dataSet => evaluateModel(dataSet.trainingData, dataSet.predictionData, AlsParameters(dataSet = dataSet)) map {
       case Evaluation(output, recall) => //Logger.log.warn(output)
     })

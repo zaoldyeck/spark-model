@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+class ALSModel3 extends ALSModel {
   /*
   private val sqlContext: SQLContext = new SQLContext(sc)
   */
@@ -28,7 +28,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
   object DataSet {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
+    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
       this (
         mappingData(sc.textFile(trainingDataPath)).persist,
         mappingData(sc.textFile(predictionDataPath)).persist,
@@ -50,7 +50,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   }
   */
 
-  val dataSets: List[DataSet] = List(
+  lazy val dataSets: List[DataSet] = List(
     /*
       DataSet(
         "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
@@ -67,7 +67,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       */
     DataSet(
       "s3n://data.emr/train78ok.csv",
-      "s3n://data.emr/test78ok.csv",
+      "s3n://data.emr/test78ok.csv",De
       "/home/hadoop/output/als-78")
   )
 
@@ -78,7 +78,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(): Unit = {
+  override def run(implicit sc: SparkContext): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
