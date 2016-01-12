@@ -6,6 +6,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.immutable.IndexedSeq
 import scala.compat.Platform
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.Random
