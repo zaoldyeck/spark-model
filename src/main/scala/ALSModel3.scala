@@ -132,22 +132,23 @@ class ALSModel3 extends ALSModel {
   def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
     semaphore.acquire()
     Future {
-      try {
-        Logger.log.warn("Evaluate")
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-          .map(predict => ((predict.user, predict.product), predict.rating))
-          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-        }
-        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = evaluation.toListString
-        Logger.log.warn("Single:" + output)
-        Evaluation(output, evaluation.recall)
-      } finally semaphore.release()
+      //try {
+      Logger.log.warn("Evaluate")
+      val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+        .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+        .map(predict => ((predict.user, predict.product), predict.rating))
+        .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+        case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+      }
+      val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+      val output: String = evaluation.toListString
+      Logger.log.warn("Single:" + output)
+      semaphore.release()
+      Evaluation(output, evaluation.recall)
+      //} finally semaphore.release()
     } recover {
       case e: Exception =>
-        Logger.log.error(e.printStackTrace)
+        Logger.log.error(e.printStackTrace())
         Evaluation("", 0)
     }
   }
