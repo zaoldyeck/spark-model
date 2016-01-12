@@ -22,7 +22,7 @@ object Main {
   }
 
   def setSparkEnv(): SparkContext = {
-    val conf = new SparkConf().setAppName("SparkAls")
+    val conf: SparkConf = new SparkConf().setAppName("SparkAls")
     new SparkContext(conf)
   }
 }
