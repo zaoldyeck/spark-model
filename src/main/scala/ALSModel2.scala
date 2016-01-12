@@ -12,7 +12,7 @@ class ALSModel2(sc: SparkContext) extends ALSModel {
   private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_has_login_days.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als2"
 
-  override def run(): Unit = {
+   def run(): Unit = {
 
     // Load and parse the data
     Logger.log.warn("Load into RDD...")
