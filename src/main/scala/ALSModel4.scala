@@ -1,7 +1,8 @@
 import org.apache.spark.SparkContext
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 
 /**
   * Created by zaoldyeck on 2016/1/12.
