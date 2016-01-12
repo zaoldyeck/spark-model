@@ -48,28 +48,24 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   }
   */
 
-  private lazy val dataSets: List[DataSet] = List(
-
+  val dataSets: List[DataSet] = List(
     DataSet(
       "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
       "hdfs://pubgame/user/vincent/pg_user_game_90_other.csv",
-      "hdfs://pubgame/user/vincent/spark-als")
-    /*
-        DataSet(
-          "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
-          "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
-          "hdfs://pubgame/user/vincent/spark-als-play"),
-        DataSet(
-          "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
-          "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
-          "hdfs://pubgame/user/vincent/spark-als-78")
-          */
-    /*
-      DataSet(
-        "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
-        "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
-        "hdfs://pubgame/user/vincent/spark-als-90-all")
-        */
+      "hdfs://pubgame/user/vincent/spark-als"),
+    DataSet(
+      "hdfs://pubgame/user/vincent/pg_user_game_90_training_play.csv",
+      "hdfs://pubgame/user/vincent/pg_user_game_90_other_play.csv",
+      "hdfs://pubgame/user/vincent/spark-als-play")/*,
+    DataSet(
+      "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/train78ok.csv",
+      "s3n://s3-ap-northeast-1.amazonaws.com/data.emr/test78ok.csv",
+      "hdfs://pubgame/user/vincent/spark-als-78"),
+    DataSet(
+      "hdfs://pubgame/user/terry/training90_ok_has_id.csv",
+      "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
+      "hdfs://pubgame/user/vincent/spark-als-90-all")
+  */
   )
 
   /*
@@ -142,23 +138,23 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val evaluation_2: Evaluation = evaluateModel_2
         val evaluation_3: Evaluation = evaluateModel_3
         val evaluation_4: Evaluation = evaluateModel_4
-        //} yield {
-        /*
-        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-        try {
-          //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
-          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-          val average: String = "%.4f".format(recalls.sum / recalls.length)
-          val difference: String = "%.4f".format(recalls.max - recalls.min)
-          val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-          val result: String = s"$header,$evaluation_1\r\n" +
-            s"$header,$evaluation_2\r\n" +
-            s"$header,$evaluation_3\r\n" +
-            s"$header,$evaluation_4\r\n"
-          printWriter.write(result)
-          Logger.log.warn("Sum:" + result)
-        } finally printWriter.close()
-        */
+      //} yield {
+      /*
+      val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
+      try {
+        //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
+        val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+        val average: String = "%.4f".format(recalls.sum / recalls.length)
+        val difference: String = "%.4f".format(recalls.max - recalls.min)
+        val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
+        val result: String = s"$header,$evaluation_1\r\n" +
+          s"$header,$evaluation_2\r\n" +
+          s"$header,$evaluation_3\r\n" +
+          s"$header,$evaluation_4\r\n"
+        printWriter.write(result)
+        Logger.log.warn("Sum:" + result)
+      } finally printWriter.close()
+      */
       //}
       //Await.result(eventualUnit, Duration.Inf)
     }
