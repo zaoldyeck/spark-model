@@ -79,7 +79,7 @@ class ALSModel(implicit sc: SparkContext) extends Serializable {
     Logger.log.warn(calConfusionMatrix(ratesAndPreds).toString)
   }
 
-  def dropHeader(data: RDD[String]): RDD[String] = {
+  val dropHeader = (data: RDD[String]) => {
     data.mapPartitionsWithIndex {
       case (0, lines) if lines.hasNext =>
         lines.next
@@ -88,7 +88,7 @@ class ALSModel(implicit sc: SparkContext) extends Serializable {
     }
   }
 
-  def mappingData(data: RDD[String]): RDD[Rating] = {
+  val mappingData = (data: RDD[String]) => {
     Logger.log.warn("Mapping...")
 
     dropHeader(data) flatMap {
