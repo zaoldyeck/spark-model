@@ -7,7 +7,7 @@ import scala.concurrent.{Await, Future}
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
-class ALSModel4 extends ALSModel3 {
+class ALSModel4(implicit sc: SparkContext) extends ALSModel3 {
   /*
   override val dataSets: List[DataSet] = List(
     DataSet(

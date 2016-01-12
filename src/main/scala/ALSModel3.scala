@@ -19,8 +19,7 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3 extends ALSModel {
-  val semaphore = new Semaphore(10)
+class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
