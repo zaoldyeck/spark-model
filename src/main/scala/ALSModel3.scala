@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3 extends ALSModel {
+class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   /*
   private val sqlContext: SQLContext = new SQLContext(sc)
   */
@@ -28,7 +28,7 @@ class ALSModel3 extends ALSModel {
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
   object DataSet {
-    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String)(implicit sc: SparkContext): DataSet = {
+    def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
         mappingData(sc.textFile(trainingDataPath)).persist,
         mappingData(sc.textFile(predictionDataPath)).persist,
@@ -50,7 +50,7 @@ class ALSModel3 extends ALSModel {
   }
   */
 
-  lazy val dataSets = () => List(
+  val dataSets: List[DataSet] = List(
     /*
       DataSet(
         "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",

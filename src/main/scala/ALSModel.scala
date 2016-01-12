@@ -8,14 +8,14 @@ import scala.sys.process._
   * Created by zaoldyeck on 2015/12/23.
   */
 class ALSModel extends Serializable {
-  //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training.csv"
-  //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test.csv"
+  private val TRAINING_DATA_IN_PATH = "s3n://data.emr/train78ok.csv"
+  private val TEST_DATA_IN_PATH = "s3n://data.emr/test78ok.csv"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_test_01.txt"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_training_v2.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_v2.csv"
-  private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
-  private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
+  //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
+  //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
   private val OUTPUT_PATH = "hdfs://pubgame/user/vincent/spark-als"
 
   def run(implicit sc: SparkContext): Unit = {
