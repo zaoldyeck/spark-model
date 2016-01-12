@@ -122,7 +122,7 @@ class ALSModel(implicit sc: SparkContext) extends Serializable {
         s"F = $f"
     }
 
-    def toListString: String = {
+    val toListString: String = {
       s"${"%.4f".format(accuracy)}," +
         s"${"%.4f".format(precision)}," +
         s"${"%.4f".format(recall)}," +
