@@ -160,7 +160,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
-  val calConfusionMatrix = (predictResult: RDD[PredictResult]) => {
+  def calConfusionMatrix(predictResult: RDD[PredictResult]): ConfusionMatrixResult = {
     val result: ConfusionMatrix = predictResult.map {
       case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
       case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
