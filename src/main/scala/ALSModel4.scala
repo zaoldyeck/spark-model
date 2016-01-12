@@ -32,9 +32,10 @@ class ALSModel4 extends Serializable {
       alpha <- 0.0001 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-
     rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
       case Array(training, prediction) =>
+        Logger.log.warn("Training Size:" + training.count)
+        Logger.log.warn("Prediction Size:" + prediction.count)
         Logger.log.warn("Predict...")
         val parameter: AlsParameters = Random.shuffle(parametersSeq).head
         //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
