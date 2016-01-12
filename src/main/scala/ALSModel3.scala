@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+class ALSModel3 extends ALSModel {
   /*
   private val sqlContext: SQLContext = new SQLContext(sc)
   */
@@ -27,6 +27,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
+  /*
   object DataSet {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       this (
@@ -35,6 +36,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         outputPath)
     }
   }
+  */
 
   /*
   object DataFrame_ {
@@ -50,6 +52,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   }
   */
 
+  /*
   val dataSets: List[DataSet] = List(
     /*
       DataSet(
@@ -70,15 +73,17 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       "s3n://data.emr/test78ok.csv",
       "/home/hadoop/output/als-78")
   )
+  */
 
   /*
   private lazy val dataFrames: List[DataSet] = List(
     DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
     */
 
+  /*
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(): Unit = {
+  override def run(implicit sc: SparkContext): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
@@ -179,4 +184,5 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     val f: Double = 2 * ((precision * recall) / (precision + recall))
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
+  */
 }
