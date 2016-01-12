@@ -41,6 +41,7 @@ class ALSModel3 extends ALSModel {
         outputPath)
     }
 
+    /*
     lazy val sqlContext: SQLContext = new SQLContext(sc)
 
     object DataFrame_ {
@@ -54,6 +55,7 @@ class ALSModel3 extends ALSModel {
         } persist()
       }
     }
+    */
 
     lazy val dataSets: List[DataSet] = List(
       /*
@@ -76,8 +78,10 @@ class ALSModel3 extends ALSModel {
         "/home/hadoop/output/als-78")
     )
 
+    /*
     lazy val dataFrames: List[DataSet] = List(
       DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
+      */
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
@@ -96,49 +100,6 @@ class ALSModel3 extends ALSModel {
         case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
-        }
-
-        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
-          semaphore.acquire()
-          Future {
-            try {
-              Logger.log.warn("Evaluate")
-              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-                .map(predict => ((predict.user, predict.product), predict.rating))
-                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-              }
-              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-              val output: String = evaluation.toListString
-              Logger.log.warn("Single:" + output)
-              Evaluation(output, evaluation.recall)
-            } finally semaphore.release()
-          } recover {
-            case e: Exception =>
-              Logger.log.error(e)
-              Evaluation("", 0)
-          }
-        }
-
-        def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
-          val result: ConfusionMatrix = predictResult.map {
-            case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
-            case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
-            case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
-            case _ ⇒ ConfusionMatrix(tn = 1)
-          }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
-
-          val p: Double = result.tp + result.fn
-          val n: Double = result.fp + result.tn
-          val accuracy: Double = (result.tp + result.tn) / (p + n)
-          val precision: Double = result.tp / (result.tp + result.fp)
-          val recall: Double = result.tp / p
-          val fallout: Double = result.fp / n
-          val sensitivity: Double = result.tp / (result.tp + result.fn)
-          val specificity: Double = result.tn / (result.fp + result.tn)
-          val f: Double = 2 * ((precision * recall) / (precision + recall))
-          ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
         }
 
         val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1, parameters)
@@ -170,5 +131,48 @@ class ALSModel3 extends ALSModel {
         }
     }
     Await.result(Future.sequence(futures), Duration.Inf)
+  }
+
+  def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
+    semaphore.acquire()
+    Future {
+      try {
+        Logger.log.warn("Evaluate")
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+          .map(predict => ((predict.user, predict.product), predict.rating))
+          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+        }
+        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+        val output: String = evaluation.toListString
+        Logger.log.warn("Single:" + output)
+        Evaluation(output, evaluation.recall)
+      } finally semaphore.release()
+    } recover {
+      case e: Exception =>
+        Logger.log.error(e)
+        Evaluation("", 0)
+    }
+  }
+
+  def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
+    val result: ConfusionMatrix = predictResult.map {
+      case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
+      case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
+      case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
+      case _ ⇒ ConfusionMatrix(tn = 1)
+    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
+
+    val p: Double = result.tp + result.fn
+    val n: Double = result.fp + result.tn
+    val accuracy: Double = (result.tp + result.tn) / (p + n)
+    val precision: Double = result.tp / (result.tp + result.fp)
+    val recall: Double = result.tp / p
+    val fallout: Double = result.fp / n
+    val sensitivity: Double = result.tp / (result.tp + result.fn)
+    val specificity: Double = result.tn / (result.fp + result.tn)
+    val f: Double = 2 * ((precision * recall) / (precision + recall))
+    ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 }
