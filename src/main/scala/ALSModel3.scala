@@ -109,6 +109,7 @@ class ALSModel3 extends ALSModel {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
+          Logger.log.warn("Sum:")
           //val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
           val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$outputPath/${System.nanoTime}"))
           try {
@@ -132,25 +133,20 @@ class ALSModel3 extends ALSModel {
   def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
     semaphore.acquire()
     Future {
-      //try {
-      Logger.log.warn("Evaluate")
-      val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-        .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-        .map(predict => ((predict.user, predict.product), predict.rating))
-        .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-        case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-      }
-      val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-      val output: String = evaluation.toListString
-      Logger.log.warn("Single:" + output)
-      Logger.log.warn("Single:" + evaluation.recall)
-      semaphore.release()
-      Evaluation(output, evaluation.recall)
-      //} finally semaphore.release()
-    } recover {
-      case e: Exception =>
-        Logger.log.error(e.printStackTrace())
-        Evaluation("", 0)
+      try {
+        Logger.log.warn("Evaluate")
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+          .map(predict => ((predict.user, predict.product), predict.rating))
+          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+        }
+        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+        val output: String = evaluation.toListString
+        Logger.log.warn("Single:" + output)
+        Logger.log.warn("Single:" + evaluation.recall)
+        Evaluation(output, evaluation.recall)
+      } finally semaphore.release()
     }
   }
 
