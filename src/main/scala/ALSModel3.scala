@@ -72,7 +72,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  def run(): Unit = {
+  override def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
