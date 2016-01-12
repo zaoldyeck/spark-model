@@ -52,7 +52,7 @@ class ALSModel4 extends Serializable {
             Logger.log.warn(result.toString)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
-              printWriter.append(result.toListString)
+              printWriter.append(header + "," + result.toListString)
               printWriter.println()
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
