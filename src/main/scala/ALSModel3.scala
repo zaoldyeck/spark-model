@@ -143,6 +143,7 @@ class ALSModel3 extends ALSModel {
       val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
       val output: String = evaluation.toListString
       Logger.log.warn("Single:" + output)
+      Logger.log.warn("Single:" + evaluation.recall)
       semaphore.release()
       Evaluation(output, evaluation.recall)
       //} finally semaphore.release()
