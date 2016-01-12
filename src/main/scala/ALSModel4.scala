@@ -20,11 +20,10 @@ class ALSModel4 extends Serializable {
     case class Split(training: RDD[Rating], Prediction: RDD[Rating])
 
     for (i <- 1 to 1000) {
-      rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
+      rdd.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
         case Array(training, prediction) =>
           Logger.log.warn("Predict...")
-          //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
-          val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 10, 10, 0.01, 0.01)
+          val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, 10, 0.01, 0.01)
             .predict(prediction.map(rating => (rating.user, rating.product)))
             .map(predict => ((predict.user, predict.product), predict.rating))
             .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
@@ -113,4 +112,5 @@ class ALSModel4 extends Serializable {
         s"${"%.4f".format(f)}"
     }
   }
+
 }
