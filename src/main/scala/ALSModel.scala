@@ -16,7 +16,7 @@ class ALSModel extends Serializable {
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_90_test_v2.csv"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_training_web.csv"
   //private val TEST_DATA_IN_PATH = "hdfs://pubgame/user/vincent/pg_user_game_78_test.csv"
-  private val OUTPUT_PATH = "hdfs://./spark-als"
+  private val OUTPUT_PATH = "./spark-als"
 
   def run(implicit sc: SparkContext): Unit = {
 
