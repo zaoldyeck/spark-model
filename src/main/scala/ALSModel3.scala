@@ -124,6 +124,8 @@ class ALSModel3 extends ALSModel {
               s"$header,$evaluation_4\r\n"
             printWriter.write(result)
             Logger.log.warn("Sum:" + result)
+          } catch {
+            case e: Exception => Logger.log.error(e.printStackTrace())
           } finally printWriter.close()
         }
     }
