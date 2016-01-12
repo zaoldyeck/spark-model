@@ -16,8 +16,10 @@ class ALSModel4 extends Serializable {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     val rddOnly90: RDD[Rating] = rdd.filter(_.rating == 90)
     rddOnly90.map(prediction => {
+      Logger.log.warn("Predict...")
       val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
       val result: Double = ALS.trainImplicit(trainingRDD, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
+      Logger.log.warn("Result:" + prediction.rating + "," + result)
       val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
       try {
         printWriter.write(prediction.rating + "," + result.toString)
