@@ -15,7 +15,7 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     val rddOnly90: RDD[Rating] = rdd.filter(_.rating == 90)
-    rddOnly90.map(prediction => {
+    rddOnly90.foreach(prediction => {
       Logger.log.warn("Predict...")
       val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
       val result: Double = ALS.trainImplicit(trainingRDD, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
