@@ -8,9 +8,8 @@ import org.apache.spark._
 object Main {
   def main(args: Array[String]) {
     //LogManager.getRootLogger.setLevel(Level.WARN)
-    val sc: SparkContext = new SparkContext(new SparkConf().setAppName("Spark-Model"))
+    val sc: SparkContext = new SparkContext(new SparkConf())
     sc.setCheckpointDir("checkpoint")
-    sc.setLogLevel("WARN")
     new ALSModel().run(sc)
     //new ALSModel2(sc).run
     //new ALSModel3(sc).run()
