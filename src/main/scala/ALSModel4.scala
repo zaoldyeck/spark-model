@@ -19,7 +19,7 @@ class ALSModel4 extends Serializable {
     Logger.log.warn("Total Size:" + rdd.count)
     case class Split(training: RDD[Rating], Prediction: RDD[Rating])
 
-    for (1 <- 1000) {
+    for (i <- 1 to 1000) {
       rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
         case Array(training, prediction) =>
           Logger.log.warn("Predict...")
