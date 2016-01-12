@@ -30,9 +30,11 @@ class ALSModel4 extends Serializable {
             .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
             case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
           }
+          val result: String = calConfusionMatrix(predictResult).toListString
+          Logger.log.warn("Result:" + result)
           val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
           try {
-            printWriter.write(calConfusionMatrix(predictResult).toListString)
+            printWriter.append(result)
           } catch {
             case e: Exception => Logger.log.error(e.printStackTrace())
           } finally printWriter.close()
