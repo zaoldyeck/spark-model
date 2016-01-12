@@ -1,5 +1,4 @@
 import java.io.{FileOutputStream, PrintWriter}
-import java.util.concurrent.Executors
 
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
@@ -8,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContextExecutorService, ExecutionContext, Await, Future}
+import scala.concurrent.{Await, Future}
 import scala.util.Random
 
 /**
@@ -21,6 +20,8 @@ class ALSModel4 extends Serializable {
 
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
+    val rddNot90: RDD[Rating] = rdd.filter(_.product != 90)
+    val rdd90: RDD[Rating] = rdd.filter(_.product == 90)
     Logger.log.warn("Total Size:" + rdd.count)
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
@@ -31,16 +32,14 @@ class ALSModel4 extends Serializable {
       alpha <- 0.1 until 50 by 0.1
     } yield new AlsParameters(rank, lambda, alpha)
 
-    val pool: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(10))
-
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) => Future {
-        rdd.randomSplit(Array(0.999, 0.001), Platform.currentTime) match {
+        rdd90.randomSplit(Array(0.999, 0.001), Platform.currentTime) match {
           case Array(training, prediction) =>
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 30, parameters.rank, parameters.lambda, parameters.alpha)
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(rddNot90 union training, 30, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(prediction.map(rating => (rating.user, rating.product)))
               .map(predict => ((predict.user, predict.product), predict.rating))
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
@@ -51,13 +50,13 @@ class ALSModel4 extends Serializable {
             Logger.log.warn("Result:" + result)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
-              printWriter.println()
               printWriter.append(result)
+              printWriter.println()
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
             } finally printWriter.close()
         }
-      }(pool)
+      }
     }
     Await.result(Future.sequence(futures), Duration.Inf)
   }
