@@ -4,6 +4,8 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
+import scala.compat.Platform
+
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
@@ -15,22 +17,44 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     Logger.log.warn("Total Size:" + rdd.count)
+    case class Split(training: RDD[Rating], Prediction: RDD[Rating])
+
+    for (1 <- 1000) {
+      rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
+        case Array(training, prediction) =>
+          Logger.log.warn("Predict...")
+          //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
+          val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 10, 10, 0.01, 0.01)
+            .predict(prediction.map(rating => (rating.user, rating.product)))
+            .map(predict => ((predict.user, predict.product), predict.rating))
+            .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
+            case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+          }
+          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
+          try {
+            printWriter.write(calConfusionMatrix(predictResult).toListString)
+          } catch {
+            case e: Exception => Logger.log.error(e.printStackTrace())
+          } finally printWriter.close()
+      }
+    }
+
+
+
     val rddOnly90: RDD[Rating] = rdd.filter(_.product == 90)
     Logger.log.warn("90 Size:" + rddOnly90.count)
-    rddOnly90.foreach(prediction => evaluateModel(rdd, prediction))
-  }
-
-  def evaluateModel(trainingData: RDD[Rating], prediction: Rating): Unit = {
-    Logger.log.warn("Predict...")
-    //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
-    val result: Double = ALS.trainImplicit(trainingData, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
-    Logger.log.warn("Result:" + prediction.rating + "," + result)
-    val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
-    try {
-      printWriter.write(prediction.rating + "," + result.toString)
-    } catch {
-      case e: Exception => Logger.log.error(e.printStackTrace())
-    } finally printWriter.close()
+    rddOnly90.foreach(prediction => {
+      Logger.log.warn("Predict...")
+      //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
+      val result: Double = ALS.trainImplicit(rdd, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
+      Logger.log.warn("Result:" + prediction.rating + "," + result)
+      val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
+      try {
+        printWriter.write(prediction.rating + "," + result.toString)
+      } catch {
+        case e: Exception => Logger.log.error(e.printStackTrace())
+      } finally printWriter.close()
+    })
   }
 
   def dropHeader(data: RDD[String]): RDD[String] = {
