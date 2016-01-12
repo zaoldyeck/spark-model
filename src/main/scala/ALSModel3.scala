@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.sys.process._
-import scala.util.{Failure, Success, Random}
+import scala.util.Random
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -93,6 +93,29 @@ class ALSModel3 extends ALSModel {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
         }
 
+        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
+          semaphore.acquire()
+          Future {
+            try {
+              Logger.log.warn("Evaluate")
+              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+                .map(predict => ((predict.user, predict.product), predict.rating))
+                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+              }
+              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+              val output: String = evaluation.toListString
+              Logger.log.warn("Single:" + output)
+              Evaluation(output, evaluation.recall)
+            } finally semaphore.release()
+          } recover {
+            case e =>
+              Logger.log.error(e)
+              Evaluation("", 0)
+          }
+        }
+
         val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1, parameters)
         val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2, parameters)
         val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3, parameters)
@@ -128,29 +151,6 @@ class ALSModel3 extends ALSModel {
 
   case class Evaluation(output: String, recall: Double) {
     override def toString: String = output
-  }
-
-  def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
-    semaphore.acquire()
-    Future {
-      try {
-        Logger.log.warn("Evaluate")
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-          .map(predict => ((predict.user, predict.product), predict.rating))
-          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-        }
-        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = "" //evaluation.toListString
-        Logger.log.warn("Single:" + output)
-        Evaluation(output, evaluation.recall)
-      } finally semaphore.release()
-    } recover {
-      case e =>
-        Logger.log.error(e)
-        Evaluation("", 0)
-    }
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
