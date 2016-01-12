@@ -94,6 +94,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
+        trainingData.checkpoint()
+        Logger.log.warn(trainingData.count())
+        predictionData.checkpoint()
+        Logger.log.warn(predictionData.count())
         val outputPath: String = parameters.dataSet.outputPath
         case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
@@ -135,7 +139,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val  evaluation_4: Evaluation = evaluateModel_4
         //} yield {
           val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-          Try {
+          try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
             val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
             val average: String = "%.4f".format(recalls.sum / recalls.length)
@@ -147,9 +151,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
               s"$header,$evaluation_4\r\n"
             printWriter.write(result)
             Logger.log.warn("Sum:" + result)
-          } match {
-            case _ => printWriter.close()
-          }
+          } finally printWriter.close()
         //}
         //Await.result(eventualUnit, Duration.Inf)
     }
