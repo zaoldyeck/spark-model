@@ -122,8 +122,7 @@ class ALSModel extends Serializable {
         s"F = $f"
     }
 
-    /*
-    val toListString: String = {
+    def toListString: String = {
       s"${"%.4f".format(accuracy)}," +
         s"${"%.4f".format(precision)}," +
         s"${"%.4f".format(recall)}," +
@@ -132,10 +131,9 @@ class ALSModel extends Serializable {
         s"${"%.4f".format(specificity)}," +
         s"${"%.4f".format(f)}"
     }
-    */
   }
 
-  val calConfusionMatrix = (data: RDD[((Int, Int), (Double, Double))]) => {
+  def calConfusionMatrix(data: RDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {
     val result = data.map {
       case ((user, product), (fact, pred)) if fact > 0 && pred > 0 => ConfusionMatrix(tp = 1)
       case ((user, product), (fact, pred)) if fact > 0 && pred <= 0 => ConfusionMatrix(fn = 1)
