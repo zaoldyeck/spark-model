@@ -99,7 +99,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable {
         predictionData.checkpoint()
         Logger.log.warn(predictionData.count())
         val outputPath: String = parameters.dataSet.outputPath
-        case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
+        case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating]) extends Serializable
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
         }
