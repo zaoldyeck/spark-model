@@ -20,7 +20,7 @@ import scala.util.{Try, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable{
   private val sqlContext: SQLContext = new SQLContext(sc)
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
