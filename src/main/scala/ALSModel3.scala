@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Random}
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3(sc: SparkContext) extends ALSModel(sc) {
+class ALSModel3(sc: SparkContext) extends ALSModel {
   /*
   private val sqlContext: SQLContext = new SQLContext(sc)
   */
@@ -149,7 +149,7 @@ class ALSModel3(sc: SparkContext) extends ALSModel(sc) {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
         val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = ""//evaluation.toListString
+        val output: String = "" //evaluation.toListString
         Logger.log.warn("Single:" + output)
         Evaluation(output, evaluation.recall)
       } finally semaphore.release()
