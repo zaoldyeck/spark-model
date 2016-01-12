@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.sys.process._
-import scala.util.Random
+import scala.util.{Failure, Success, Random}
 
 /**
   * Created by zaoldyeck on 2016/1/6.
@@ -153,8 +153,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         Logger.log.warn("Single:" + output)
         Evaluation(output, evaluation.recall)
       } finally semaphore.release()
-    } onFailure {
-      case e => Logger.log.warn(e)
+    } recover {
+      case e =>
+        Logger.log.warn(e)
+        Evaluation("", 0)
     }
   }
 
