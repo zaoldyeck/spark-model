@@ -36,7 +36,7 @@ class ALSModel3 extends ALSModel {
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
-    val sqlContext: SQLContext = new SQLContext(sc)
+    lazy val sqlContext: SQLContext = new SQLContext(sc)
 
     object DataFrame_ {
       def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
@@ -50,7 +50,7 @@ class ALSModel3 extends ALSModel {
       }
     }
 
-    val dataSets: List[DataSet] = List(
+    lazy val dataSets: List[DataSet] = List(
       /*
         DataSet(
           "hdfs://pubgame/user/vincent/pg_user_game_90_training_v3.csv",
@@ -71,7 +71,7 @@ class ALSModel3 extends ALSModel {
         "/home/hadoop/output/als-78")
     )
 
-    val dataFrames: List[DataSet] = List(
+    lazy val dataFrames: List[DataSet] = List(
       DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
