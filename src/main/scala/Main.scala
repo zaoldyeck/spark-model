@@ -9,7 +9,7 @@ object Main {
 
   def main(args: Array[String]) {
     LogManager.getRootLogger.setLevel(Level.WARN)
-    implicit val sc: SparkContext = setSparkEnv()
+    implicit val sc: SparkContext = new SparkContext(new SparkConf())
     sc.setCheckpointDir("checkpoint")
     //new ALSModel().run
     //new ALSModel2().run
@@ -19,10 +19,5 @@ object Main {
     //new TestALSModel().run
     //new FormatData().run
     sc.stop()
-  }
-
-  def setSparkEnv(): SparkContext = {
-    val conf: SparkConf = new SparkConf().setAppName("SparkAls")
-    new SparkContext(conf)
   }
 }
