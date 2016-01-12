@@ -13,13 +13,13 @@ class ALSModel4 extends Serializable {
   private val OutputPath: String = "/home/hadoop/output/not-only-90.txt"
 
   def run(implicit sc: SparkContext): Unit = {
-    val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
-    Logger.log.warn("Total Size:" + rdd.count)
-    val rddOnly90: RDD[Rating] = rdd.filter(_.product == 90)
-    Logger.log.warn("90 Size:" + rddOnly90.count)
+    val data: Array[Rating] = mappingData(sc.textFile(DataPath)).collect
+    Logger.log.warn("Total Size:" + data.length)
+    val rddOnly90: Array[Rating] = data.filter(_.product == 90)
+    Logger.log.warn("90 Size:" + rddOnly90.length)
     rddOnly90.foreach(prediction => {
       Logger.log.warn("Predict...")
-      val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
+      val trainingRDD: RDD[Rating] = sc.parallelize(data.filter(rating => rating.user != prediction.user && rating.product != prediction.product))
       val result: Double = ALS.trainImplicit(trainingRDD, 10, 10, 0.01, 0.01).predict(prediction.user, prediction.product)
       Logger.log.warn("Result:" + prediction.rating + "," + result)
       val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
