@@ -23,6 +23,8 @@ class ALSModel4 extends Serializable {
     val rddNot90: RDD[Rating] = rdd.filter(_.product != 90)
     val rdd90: RDD[Rating] = rdd.filter(_.product == 90)
     Logger.log.warn("Total Size:" + rdd.count)
+    Logger.log.warn("Not 90 Size:" + rddNot90.count)
+    Logger.log.warn("90 Size:" + rdd90.count)
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
 
@@ -46,11 +48,11 @@ class ALSModel4 extends Serializable {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: String = header + "," + calConfusionMatrix(predictResult).toListString
-            Logger.log.warn("Result:" + result)
+            val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+            Logger.log.warn(result.toString)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
-              printWriter.append(result)
+              printWriter.append(result.toListString)
               printWriter.println()
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
