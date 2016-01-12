@@ -145,8 +145,8 @@ class ALSModel {
 
     val p = result.tp + result.fn
     val n = result.fp + result.tn
-    Logger.log.warn("P=" + p)
-    Logger.log.warn("N=" + n)
+    //Logger.log.warn("P=" + p)
+    //Logger.log.warn("N=" + n)
 
     val accuracy = (result.tp + result.tn) / (p + n)
     val precision = result.tp / (result.tp + result.fp)
