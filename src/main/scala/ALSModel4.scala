@@ -35,12 +35,12 @@ class ALSModel4 extends Serializable {
 
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) => Future {
-        rdd.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
+        rdd.randomSplit(Array(0.999, 0.001), Platform.currentTime) match {
           case Array(training, prediction) =>
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 35, parameters.rank, parameters.lambda, parameters.alpha)
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 30, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(prediction.map(rating => (rating.user, rating.product)))
               .map(predict => ((predict.user, predict.product), predict.rating))
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
@@ -48,9 +48,10 @@ class ALSModel4 extends Serializable {
             }
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
             val result: String = header + "," + calConfusionMatrix(predictResult).toListString
-            Logger.log.warn("Result:" + result + "\r\n")
+            Logger.log.warn("Result:" + result)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
+              printWriter.println()
               printWriter.append(result)
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
