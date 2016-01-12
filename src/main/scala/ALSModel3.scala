@@ -143,6 +143,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     val output: String = evaluation.toListString
     Logger.log.warn("Single:" + output)
     Evaluation(output, evaluation.recall)
+  } recover {
+    case e: Exception =>
+      Logger.log.error(e.printStackTrace())
+      Evaluation("", 0)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
