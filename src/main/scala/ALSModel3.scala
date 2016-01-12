@@ -32,7 +32,7 @@ class ALSModel3 extends ALSModel {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  override def run(implicit sc: SparkContext): Unit = {
+  override def run(sc: SparkContext): Unit = {
 
     def DataSet_(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       DataSet(
