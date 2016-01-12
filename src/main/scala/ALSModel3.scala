@@ -143,6 +143,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val evaluation_3: Evaluation = evaluateModel_3
         val evaluation_4: Evaluation = evaluateModel_4
         //} yield {
+        /*
         val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
         try {
           //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
@@ -157,6 +158,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           printWriter.write(result)
           Logger.log.warn("Sum:" + result)
         } finally printWriter.close()
+        */
       //}
       //Await.result(eventualUnit, Duration.Inf)
     }
