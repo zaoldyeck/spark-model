@@ -71,9 +71,9 @@ class ALSModel3 extends ALSModel {
         "hdfs://pubgame/user/vincent/spark-als-90-all")
         */
       DataSet_(
-        "s3n://data.emr/train78ok.csv",
-        "s3n://data.emr/test78ok.csv",
-        "/home/hadoop/output/als-78")
+        "s3n://data.emr/pg_user_game_90_training_v3.csv",
+        "s3n://data.emr/pg_user_game_90_other.csv",
+        "/home/hadoop/output/als-90")
     )
 
     lazy val dataFrames: List[DataSet] = List(
