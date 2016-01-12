@@ -20,7 +20,9 @@ import scala.util.Random
   * Created by zaoldyeck on 2016/1/6.
   */
 class ALSModel3(implicit sc: SparkContext) extends ALSModel {
+  /*
   private val sqlContext: SQLContext = new SQLContext(sc)
+  */
   val semaphore = new Semaphore(10)
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
@@ -34,6 +36,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     }
   }
 
+  /*
   object DataFrame_ {
     def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       DataSet(mapToRDD(trainingDataPath), mapToRDD(predictionDataPath), outputPath)
@@ -45,6 +48,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       } persist()
     }
   }
+  */
 
   val dataSets: List[DataSet] = List(
     /*
