@@ -149,7 +149,7 @@ class ALSModel3(sc: SparkContext) extends ALSModel(sc) {
           case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
         }
         val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-        val output: String = evaluation.toListString
+        val output: String = ""//evaluation.toListString
         Logger.log.warn("Single:" + output)
         Evaluation(output, evaluation.recall)
       } finally semaphore.release()
