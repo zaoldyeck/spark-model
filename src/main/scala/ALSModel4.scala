@@ -4,12 +4,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
-import scala.collection.immutable.IndexedSeq
 import scala.compat.Platform
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scala.util.Random
 
 /**
   * Created by zaoldyeck on 2016/1/12.
@@ -22,29 +17,28 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     Logger.log.warn("Total Size:" + rdd.count)
+    case class Split(training: RDD[Rating], Prediction: RDD[Rating])
 
-    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
-
-    rdd.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
-      case Array(training, prediction) =>
-        Logger.log.warn("Training Size:" + training.count)
-        Logger.log.warn("Prediction Size:" + prediction.count)
-        Logger.log.warn("Predict...")
-        val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, 10, 0.01, 0.01)
-          .predict(prediction.map(rating => (rating.user, rating.product)))
-          .map(predict => ((predict.user, predict.product), predict.rating))
-          .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
-          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-        }
-        val header: String = "" //s"${parameter.rank},${parameter.lambda},${parameter.alpha}"
-      val result: String = header + "," + calConfusionMatrix(predictResult).toListString
-        Logger.log.warn("Result:" + result)
-        val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
-        try {
-          printWriter.write(result)
-        } catch {
-          case e: Exception => Logger.log.error(e.printStackTrace())
-        } finally printWriter.close()
+    for (i <- 1 to 1000) {
+      rdd.randomSplit(Array(0.99, 0.1), Platform.currentTime) match {
+        case Array(training, prediction) =>
+          Logger.log.warn("Predict...")
+          //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
+          val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 10, 10, 0.01, 0.01)
+            .predict(prediction.map(rating => (rating.user, rating.product)))
+            .map(predict => ((predict.user, predict.product), predict.rating))
+            .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
+            case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+          }
+          val result: String = calConfusionMatrix(predictResult).toListString
+          Logger.log.warn("Result:" + result)
+          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
+          try {
+            printWriter.append(result)
+          } catch {
+            case e: Exception => Logger.log.error(e.printStackTrace())
+          } finally printWriter.close()
+      }
     }
   }
 
@@ -119,5 +113,4 @@ class ALSModel4 extends Serializable {
         s"${"%.4f".format(f)}"
     }
   }
-
 }
