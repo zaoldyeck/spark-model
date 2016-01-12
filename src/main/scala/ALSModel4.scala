@@ -15,7 +15,7 @@ class ALSModel4 extends Serializable {
   def run(implicit sc: SparkContext): Unit = {
     val rdd: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     Logger.log.warn("Total Size:" + rdd.count)
-    val rddOnly90: RDD[Rating] = rdd.filter(_.rating.toInt == 90)
+    val rddOnly90: RDD[Rating] = rdd.filter(_.product == 90)
     Logger.log.warn("90 Size:" + rddOnly90.count)
     rddOnly90.foreach(prediction => {
       Logger.log.warn("Predict...")
