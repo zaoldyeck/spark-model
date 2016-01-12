@@ -21,6 +21,7 @@ import scala.util.Random
   */
 class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   private val sqlContext: SQLContext = new SQLContext(sc)
+  val semaphore = new Semaphore(10)
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
@@ -74,10 +75,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
   def run(): Unit = {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     case class DataSetRDD(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    val semaphore = new Semaphore(10)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
-    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
     val parametersSeq: IndexedSeq[AlsParameters] = for {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
@@ -95,34 +94,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
         }
 
-        case class Evaluation(output: String, recall: Double) {
-          override def toString: String = output
-        }
-
-        def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Future[Evaluation] = {
-          semaphore.acquire()
-          Future {
-            try {
-              Logger.log.warn("Evaluate")
-              val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-                .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-                .map(predict => ((predict.user, predict.product), predict.rating))
-                .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-                case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-              }
-              val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-              val output: String = evaluation.toListString
-              Logger.log.warn("Single:" + output)
-              Evaluation(output, evaluation.recall)
-            } finally semaphore.release()
-            Evaluation("", 0)
-          }
-        }
-
-        val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1)
-        val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2)
-        val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3)
-        val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4)
+        val evaluateModel_1: Future[Evaluation] = evaluateModel(trainingData union split._2 union split._3 union split._4, split._1, parameters)
+        val evaluateModel_2: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._3 union split._4, split._2, parameters)
+        val evaluateModel_3: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._4, split._3, parameters)
+        val evaluateModel_4: Future[Evaluation] = evaluateModel(trainingData union split._1 union split._2 union split._3, split._4, parameters)
 
         for {
           evaluation_1: Evaluation <- evaluateModel_1
@@ -148,6 +123,31 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         }
     }
     Await.result(Future.sequence(futures), Duration.Inf)
+  }
+
+  case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
+
+  case class Evaluation(output: String, recall: Double) {
+    override def toString: String = output
+  }
+
+  def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = {
+    semaphore.acquire()
+    Future {
+      try {
+        Logger.log.warn("Evaluate")
+        val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+          .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+          .map(predict => ((predict.user, predict.product), predict.rating))
+          .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+          case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+        }
+        val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+        val output: String = evaluation.toListString
+        Logger.log.warn("Single:" + output)
+        Evaluation(output, evaluation.recall)
+      } finally semaphore.release()
+    }
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
