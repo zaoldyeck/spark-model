@@ -71,8 +71,10 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       "/home/hadoop/output/als-78")
   )
 
+  /*
   private lazy val dataFrames: List[DataSet] = List(
     DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
+    */
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
