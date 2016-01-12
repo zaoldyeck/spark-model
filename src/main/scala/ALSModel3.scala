@@ -62,7 +62,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       */
     DataSet(
       "s3n://data.emr/test78ok.csv",
-      "s3n://s3n://data.emr/train78ok.csv",
+      "s3n://data.emr/train78ok.csv",
       "hdfs://spark-als-78")
   )
 
