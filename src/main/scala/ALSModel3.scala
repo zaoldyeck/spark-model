@@ -1,4 +1,4 @@
-import java.io.PrintWriter
+import java.io.{FileOutputStream, PrintWriter}
 import java.util.concurrent.Semaphore
 
 import org.apache.hadoop.conf.Configuration
@@ -41,7 +41,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
     def mapToRDD(path: String): RDD[Rating] = {
       sqlContext.read.parquet(path) map {
         case Row(unique_id: Long, game_id: String, saving: Int) => Rating(unique_id.toInt, game_id.toInt, saving.toDouble)
-      } persist
+      } persist()
     }
   }
 
@@ -61,9 +61,9 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
       "hdfs://pubgame/user/vincent/spark-als-90-all")
       */
     DataSet(
-      "s3n://data.emr/test78ok.csv",
       "s3n://data.emr/train78ok.csv",
-      "hdfs://spark-als-78")
+      "s3n://data.emr/test78ok.csv",
+      "/home/hadoop/output/als-78")
   )
 
   private lazy val dataFrames: List[DataSet] = List(
@@ -130,7 +130,8 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
-          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
+          //val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
+          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$outputPath/${System.nanoTime}"))
           try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
             val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
