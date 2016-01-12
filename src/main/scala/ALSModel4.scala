@@ -22,6 +22,8 @@ class ALSModel4 extends Serializable {
     for (i <- 1 to 1000) {
       rdd.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
         case Array(training, prediction) =>
+          Logger.log.warn("Training Size:" + training.count)
+          Logger.log.warn("Predicting Size" + prediction.count)
           Logger.log.warn("Predict...")
           val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, 10, 0.01, 0.01)
             .predict(prediction.map(rating => (rating.user, rating.product)))
@@ -31,7 +33,7 @@ class ALSModel4 extends Serializable {
           }
           val result: String = calConfusionMatrix(predictResult).toListString
           Logger.log.warn("Result:" + result)
-          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath"))
+          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
           try {
             printWriter.append(result)
           } catch {
