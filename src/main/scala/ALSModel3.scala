@@ -90,7 +90,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable {
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
     //val futures: IndexedSeq[Future[Unit]] =
-    Random.shuffle(parametersSeq).map(w=>w.no).zipWithIndex foreach {
+    Random.shuffle(parametersSeq).zipWithIndex foreach {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
