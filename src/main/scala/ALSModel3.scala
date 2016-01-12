@@ -115,19 +115,20 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating]): Evaluation = {
           //semaphore.acquire()
           //Future {
-            //try {
-            Logger.log.warn("Evaluate")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
-              .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
-            val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-            val output: String = evaluation.toListString
-            Logger.log.warn("Single:" + output)
-            Evaluation(output, evaluation.recall)
-            //} finally semaphore.release()
+          //try {
+          Logger.log.warn("Evaluate")
+          val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+            .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
+            .map(predict => ((predict.user, predict.product), predict.rating))
+            .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+            case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+          }
+          //val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+          //val output: String = evaluation.toListString
+          //Logger.log.warn("Single:" + output)
+          //Evaluation(output, evaluation.recall)
+          //} finally semaphore.release()
+          Evaluation("", 0)
           //}
         }
 
@@ -137,27 +138,27 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel {
         val evaluateModel_4: Evaluation = evaluateModel(sc.union(trainingData, split._1, split._2, split._3), split._4)
 
         //val eventualUnit: Future[Unit] = for {
-        val  evaluation_1: Evaluation = evaluateModel_1
-        val  evaluation_2: Evaluation = evaluateModel_2
-        val  evaluation_3: Evaluation = evaluateModel_3
-        val  evaluation_4: Evaluation = evaluateModel_4
+        val evaluation_1: Evaluation = evaluateModel_1
+        val evaluation_2: Evaluation = evaluateModel_2
+        val evaluation_3: Evaluation = evaluateModel_3
+        val evaluation_4: Evaluation = evaluateModel_4
         //} yield {
-          val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-          try {
-            //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
-            val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-            val average: String = "%.4f".format(recalls.sum / recalls.length)
-            val difference: String = "%.4f".format(recalls.max - recalls.min)
-            val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: String = s"$header,$evaluation_1\r\n" +
-              s"$header,$evaluation_2\r\n" +
-              s"$header,$evaluation_3\r\n" +
-              s"$header,$evaluation_4\r\n"
-            printWriter.write(result)
-            Logger.log.warn("Sum:" + result)
-          } finally printWriter.close()
-        //}
-        //Await.result(eventualUnit, Duration.Inf)
+        val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
+        try {
+          //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
+          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+          val average: String = "%.4f".format(recalls.sum / recalls.length)
+          val difference: String = "%.4f".format(recalls.max - recalls.min)
+          val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
+          val result: String = s"$header,$evaluation_1\r\n" +
+            s"$header,$evaluation_2\r\n" +
+            s"$header,$evaluation_3\r\n" +
+            s"$header,$evaluation_4\r\n"
+          printWriter.write(result)
+          Logger.log.warn("Sum:" + result)
+        } finally printWriter.close()
+      //}
+      //Await.result(eventualUnit, Duration.Inf)
     }
   }
 
