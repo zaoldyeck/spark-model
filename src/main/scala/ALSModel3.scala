@@ -90,7 +90,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable {
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
     //val futures: IndexedSeq[Future[Unit]] =
-    Random.shuffle(parametersSeq).zipWithIndex foreach {
+    Random.shuffle(parametersSeq).map(w=>w.no).zipWithIndex foreach {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
@@ -99,7 +99,7 @@ class ALSModel3(implicit sc: SparkContext) extends ALSModel with Serializable {
         predictionData.checkpoint()
         Logger.log.warn(predictionData.count())
         val outputPath: String = parameters.dataSet.outputPath
-        case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating]) extends Serializable
+        case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
         }
