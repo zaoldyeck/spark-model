@@ -41,7 +41,6 @@ class ALSModel3 extends ALSModel {
         outputPath)
     }
 
-    /*
     lazy val sqlContext: SQLContext = new SQLContext(sc)
 
     object DataFrame_ {
@@ -55,7 +54,6 @@ class ALSModel3 extends ALSModel {
         } persist()
       }
     }
-    */
 
     lazy val dataSets: List[DataSet] = List(
       /*
@@ -78,10 +76,8 @@ class ALSModel3 extends ALSModel {
         "/home/hadoop/output/als-78")
     )
 
-    /*
     lazy val dataFrames: List[DataSet] = List(
       DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
-      */
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
@@ -151,7 +147,7 @@ class ALSModel3 extends ALSModel {
       } finally semaphore.release()
     } recover {
       case e: Exception =>
-        Logger.log.error(e)
+        Logger.log.error(e.printStackTrace)
         Evaluation("", 0)
     }
   }
