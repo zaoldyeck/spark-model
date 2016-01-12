@@ -25,19 +25,11 @@ class ALSModel4 extends Serializable {
 
     case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
 
-    val parametersSeq: IndexedSeq[AlsParameters] = for {
-      rank <- 2 until 50 by 2
-      lambda <- 0.0001 until 15 by 0.1
-      alpha <- 0.0001 until 50 by 0.1
-    } yield new AlsParameters(rank, lambda, alpha)
-
     rdd.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
       case Array(training, prediction) =>
         Logger.log.warn("Training Size:" + training.count)
         Logger.log.warn("Prediction Size:" + prediction.count)
         Logger.log.warn("Predict...")
-        //val parameter: AlsParameters = Random.shuffle(parametersSeq).head
-        //val trainingRDD: RDD[Rating] = rdd.filter(rating => rating.user != prediction.user && rating.product != prediction.product)
         val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 50, 10, 0.01, 0.01)
           .predict(prediction.map(rating => (rating.user, rating.product)))
           .map(predict => ((predict.user, predict.product), predict.rating))
