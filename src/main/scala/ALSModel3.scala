@@ -218,5 +218,4 @@ class ALSModel3 extends Serializable {
         s"${"%.4f".format(f)}"
     }
   }
-
 }
