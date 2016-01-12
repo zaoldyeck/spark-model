@@ -25,13 +25,13 @@ class ALSModel3 extends ALSModel {
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
-    case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String) {
-      def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
-        DataSet(
-          mappingData(sc.textFile(trainingDataPath)).persist,
-          mappingData(sc.textFile(predictionDataPath)).persist,
-          outputPath)
-      }
+    case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
+
+    def DataSet_(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
+      DataSet(
+        mappingData(sc.textFile(trainingDataPath)).persist,
+        mappingData(sc.textFile(predictionDataPath)).persist,
+        outputPath)
     }
 
     lazy val sqlContext: SQLContext = new SQLContext(sc)
@@ -63,7 +63,7 @@ class ALSModel3 extends ALSModel {
         "hdfs://pubgame/user/terry/testing90_ok_has_id.csv",
         "hdfs://pubgame/user/vincent/spark-als-90-all")
         */
-      DataSet(
+      DataSet_(
         "s3n://data.emr/train78ok.csv",
         "s3n://data.emr/test78ok.csv",
         "/home/hadoop/output/als-78")
