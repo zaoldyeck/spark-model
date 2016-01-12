@@ -25,10 +25,9 @@ class ALSModel3 extends ALSModel {
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
   override def run(implicit sc: SparkContext): Unit = {
-    case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
-    object DataSet {
+    case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String) {
       def apply(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
-        this (
+        DataSet(
           mappingData(sc.textFile(trainingDataPath)).persist,
           mappingData(sc.textFile(predictionDataPath)).persist,
           outputPath)
