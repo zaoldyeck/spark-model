@@ -35,12 +35,12 @@ class ALSModel5 extends Serializable {
 
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) => Future {
-        rdd90.randomSplit(Array(0.75, 0.25), Platform.currentTime) match {
+        (rddNot90 union rdd90).randomSplit(Array(0.75, 0.25), Platform.currentTime) match {
           case Array(training, prediction) =>
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(rddNot90 union training, 40, parameters.rank, parameters.lambda, parameters.alpha)
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(rddNot90, 40, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(prediction.map(rating => (rating.user, rating.product)))
               .map(predict => ((predict.user, predict.product), predict.rating))
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
