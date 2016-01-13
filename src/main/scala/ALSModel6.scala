@@ -76,7 +76,7 @@ class ALSModel6 extends Serializable {
         case Array(pub_id, game_id, saving) =>
           val gameIdNoQuotes = game_id.replace("\"", "")
           val rating = saving.toDouble
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, rating)
+          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, rating))
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None
