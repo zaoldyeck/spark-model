@@ -110,7 +110,7 @@ class ALSModel3 extends Serializable {
         } yield {
           Logger.log.warn("Sum:")
           //val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$outputPath/${System.nanoTime}"))
+          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$outputPath/${System.currentTimeMillis}"))
           try {
             //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
             val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
@@ -133,7 +133,7 @@ class ALSModel3 extends Serializable {
 
   def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = Future {
     Logger.log.warn("Evaluate")
-    val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 10, parameters.lambda, parameters.alpha)
+    val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 40, parameters.lambda, parameters.alpha)
       .predict(testingData.map(dataSet => (dataSet.user, dataSet.product)))
       .map(predict => ((predict.user, predict.product), predict.rating))
       .join(testingData.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {

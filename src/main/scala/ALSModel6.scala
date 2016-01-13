@@ -37,9 +37,9 @@ class ALSModel6 extends Serializable {
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training.map(rating => Rating(rating.user, rating.product, (rating.rating - 703) / 100090313)), 20, parameters.rank, parameters.lambda, parameters.alpha)
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 20, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(prediction.map(rating => (rating.user, rating.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating * 100090313 + 703))
+              .map(predict => ((predict.user, predict.product), predict.rating))
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
