@@ -4,7 +4,7 @@ git pull
 #sbt clean package
 sbt package
 spark-submit --driver-memory 20G \
-             --num-executors 3 \
+             --num-executors 5 \
              --executor-cores 4 \
              --executor-memory 20G \
              --class Main target/scala-2.10/spark-model_2.10-1.0.jar
