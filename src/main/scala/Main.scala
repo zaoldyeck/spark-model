@@ -13,7 +13,8 @@ object Main {
     //new ALSModel().run
     //new ALSModel2().run
     //new ALSModel3().run(sc)
-    new ALSModel4().run
+    //new ALSModel4().run
+    new ALSModel5().run
     //new KMeansModel().run
     //new LDAModel().run
     //new TestALSModel().run
