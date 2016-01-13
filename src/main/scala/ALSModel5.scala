@@ -35,7 +35,7 @@ class ALSModel5 extends Serializable {
 
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) => Future {
-        rdd90.randomSplit(Array(0.99, 0.01), Platform.currentTime) match {
+        rdd90.randomSplit(Array(0.999, 0.001), Platform.currentTime) match {
           case Array(training, prediction) =>
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
