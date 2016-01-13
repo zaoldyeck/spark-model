@@ -87,7 +87,7 @@ class ALSModel3 extends Serializable {
       dataSet <- dataSets
     } yield new AlsParameters(rank, lambda, alpha, dataSet)
 
-    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex map {
+    val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex.take(1) map {
       case (parameters, index) =>
         val trainingData: RDD[Rating] = parameters.dataSet.trainingData
         val predictionData: RDD[Rating] = parameters.dataSet.predictionData
