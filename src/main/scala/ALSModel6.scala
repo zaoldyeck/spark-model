@@ -73,10 +73,10 @@ class ALSModel6 extends Serializable {
 
     dropHeader(data) flatMap {
       _.split(",") match {
-        case Array(pub_id, game_id, saving, play_game_count, is_play_90) =>
+        case Array(pub_id, game_id, saving) =>
           val gameIdNoQuotes = game_id.replace("\"", "")
           val rating = saving.toDouble
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
+          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, rating)
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None
