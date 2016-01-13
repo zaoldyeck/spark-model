@@ -14,8 +14,8 @@ object Main {
     //new ALSModel2().run
     //new ALSModel3().run
     //new ALSModel4().run
-    //new ALSModel5().run
-    new ALSModelPredict().run
+    new ALSModel5().run
+    //new ALSModelPredict().run
     //new ALSModel6().run
     //new KMeansModel().run
     //new LDAModel().run

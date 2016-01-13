@@ -56,7 +56,7 @@ class ALSModelPredict extends Serializable {
             val resultCount: Long = ALS.trainImplicit(rddNot90 union training, 20, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(predictRDD).filter(_.rating > 0).count
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            Logger.log.warn(resultCount.toString)
+            Logger.log.warn("Count:" + resultCount.toString)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
               printWriter.append(header + "," + resultCount)
