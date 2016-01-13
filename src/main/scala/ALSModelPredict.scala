@@ -15,14 +15,26 @@ import scala.util.Random
   */
 class ALSModelPredict extends Serializable {
 
-  private val TrainingDataPath: String = "s3n://data.emr/als_web_no_tl_game_revised.csv"
-  private val TrainingDataPath2: String = "s3n://data.emr/als_web_no_tl_game_revised.csv"
+  private val TrainingDataNot90Path: String = "s3n://data.emr/als_web_no_tl_game_revised.csv"
+  private val TrainingData90Path: String = "s3n://data.emr/als_web_not_only_tl_game_revised.csv"
   private val PredictDataPath: String = "s3n://data.emr/als_web_not_only_tl_game_revised.csv"
   private val OutputPath: String = "/home/hadoop/output/all-90.txt"
 
   def run(implicit sc: SparkContext): Unit = {
-    val rddNot90: RDD[Rating] = mappingData(sc.textFile(TrainingDataPath)).persist
-    val rdd90: RDD[Rating] = mappingData(sc.textFile(PredictDataPath)).persist
+    val rddNot90: RDD[Rating] = mappingData(sc.textFile(TrainingDataNot90Path)).persist
+    val rdd90: RDD[Rating] = mappingData(sc.textFile(TrainingData90Path)).persist
+
+    case class UserInformation(uniqueId: String, userId: String, androidId: String, advertisingId: String, email: String, cellphone: String, imei: String)
+    val predictUsers: RDD[UserInformation] = dropHeader(sc.textFile(PredictDataPath)) flatMap {
+      _.split(",") match {
+        case Array(uniqueId, userId, androidId, advertisingId, email, cellphone, imei) =>
+          Some(UserInformation(uniqueId, userId, androidId, advertisingId, email, cellphone, imei))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
+    }
+    val predictRDD: RDD[(Int, Int)] = predictUsers.map(predictUser => (predictUser.userId.toInt, 90))
     Logger.log.warn("Not 90 Size:" + rddNot90.count)
     Logger.log.warn("90 Size:" + rdd90.count)
 
@@ -36,23 +48,18 @@ class ALSModelPredict extends Serializable {
 
     val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
       case (parameters, index) => Future {
-        rdd90.randomSplit(Array(0.75, 0.25), Platform.currentTime) match {
+        rdd90.randomSplit(Array(1, 0), Platform.currentTime) match {
           case Array(training, prediction) =>
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(rddNot90 union training, 40, parameters.rank, parameters.lambda, parameters.alpha)
-              .predict(prediction.map(rating => (rating.user, rating.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
+            val resultCount: Long = ALS.trainImplicit(rddNot90 union training, 40, parameters.rank, parameters.lambda, parameters.alpha)
+              .predict(predictRDD).filter(_.rating > 0).count
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-            Logger.log.warn(result.toString)
+            Logger.log.warn(resultCount.toString)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
             try {
-              printWriter.append(header + "," + result.toListString)
+              printWriter.append(header + "," + resultCount)
               printWriter.println()
             } catch {
               case e: Exception => Logger.log.error(e.printStackTrace())
