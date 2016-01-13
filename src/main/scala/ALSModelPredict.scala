@@ -34,7 +34,7 @@ class ALSModelPredict extends Serializable {
           None
       }
     }
-    val predictRDD: RDD[(Int, Int)] = predictUsers.map(predictUser => (predictUser.userId.toInt, 90))
+    val predictRDD: RDD[(Int, Int)] = predictUsers.map(predictUser => (predictUser.uniqueId.toInt, 90))
     Logger.log.warn("Not 90 Size:" + rddNot90.count)
     Logger.log.warn("90 Size:" + rdd90.count)
 
@@ -53,7 +53,7 @@ class ALSModelPredict extends Serializable {
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val resultCount: Long = ALS.trainImplicit(rddNot90 union training, 40, parameters.rank, parameters.lambda, parameters.alpha)
+            val resultCount: Long = ALS.trainImplicit(rddNot90 union training, 20, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(predictRDD).filter(_.rating > 0).count
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
             Logger.log.warn(resultCount.toString)
