@@ -15,7 +15,7 @@ import scala.util.Random
   */
 class ALSModel6 extends Serializable {
 
-  private val DataPath: String = "s3n://data.emr/member_behavior_web_mean_normalization.csv"
+  private val DataPath: String = "s3n://data.emr/als_web_saving.csv"
   private val OutputPath: String = "/home/hadoop/output/all.txt"
 
   def run(implicit sc: SparkContext): Unit = {
@@ -37,12 +37,13 @@ class ALSModel6 extends Serializable {
             Logger.log.warn("Training Size:" + training.count)
             Logger.log.warn("Predicting Size:" + prediction.count)
             Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training, 30, parameters.rank, parameters.lambda, parameters.alpha)
+            val predictResult: RDD[PredictResult] = ALS.trainImplicit(training.map(rating => Rating(rating.user, rating.product, (rating.rating - 703) / 100090313)), 20, parameters.rank, parameters.lambda, parameters.alpha)
               .predict(prediction.map(rating => (rating.user, rating.product)))
               .map(predict => ((predict.user, predict.product), predict.rating * 100090313 + 703))
-              .join(prediction.map(result => ((result.user, result.product), result.rating * 100090313 + 703))) map {
+              .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
+            predictResult.saveAsTextFile("./als-all")
             val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
             val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
             Logger.log.warn(result.toString)
@@ -104,7 +105,9 @@ class ALSModel6 extends Serializable {
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 
-  case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
+  case class PredictResult(user: Int, product: Int, predict: Double, fact: Double) {
+    override def toString: String = s"$user,$product,$fact,$predict"
+  }
 
   case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
 
