@@ -17,7 +17,7 @@ class ALSModelPredict extends Serializable {
 
   private val TrainingDataNot90Path: String = "s3n://data.emr/als_web_no_tl_game_revised.csv"
   private val TrainingData90Path: String = "s3n://data.emr/als_web_not_only_tl_game_revised.csv"
-  private val PredictDataPath: String = "s3n://data.emr/als_web_not_only_tl_game_revised.csv"
+  private val PredictDataPath: String = "s3n://data.emr/unique_id_hasid_information.csv"
   private val OutputPath: String = "/home/hadoop/output/all-90.txt"
 
   def run(implicit sc: SparkContext): Unit = {
