@@ -1,14 +1,12 @@
-import java.io.{FileOutputStream, PrintWriter}
-
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel
 
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.sys.process._
 import scala.util.Random
 
 /**
@@ -49,6 +47,9 @@ class ALSModel6 extends ALSModel3 {
               .join(prediction.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
+
+            val delete_out_path: String = "hadoop fs -rm -f -r " + OutputPath
+            delete_out_path.!
 
             predictResult.saveAsTextFile("./als-play")
             val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)

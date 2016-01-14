@@ -79,6 +79,7 @@ class ALSModel3 extends ALSModel {
       DataFrame_("user_game_als_90", "user_game_als_not_90", "hdfs://pubgame/user/vincent/spark-als-all"))
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
+    //delete_out_path.!
 
     val parametersSeq: IndexedSeq[(AlsParameters, DataSet)] = for {
       rank <- 2 until 50 by 2
