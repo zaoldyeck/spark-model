@@ -25,7 +25,7 @@ class ALSModel3 extends ALSModel {
 
   case class AlsParameters(rank: Int = 10, iterations: Int = 40, lambda: Double = 0.01, alpha: Double = 0.01)
 
-  case class Evaluation(output: String, recall: Double) {
+  case class Evaluation(predictResult: RDD[PredictResult], output: String, recall: Double) {
     override def toString: String = output
   }
 
@@ -135,7 +135,7 @@ class ALSModel3 extends ALSModel {
     val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
     val output: String = evaluation.toListString
     Logger.log.warn("Single:" + output)
-    Evaluation(output, evaluation.recall)
+    Evaluation(predictResult, output, evaluation.recall)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
