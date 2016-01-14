@@ -19,11 +19,11 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3 extends Serializable {
+class ALSModel3 extends ALSModel {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
-  case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01, dataSet: DataSet)
+  case class AlsParameters(rank: Int = 10, iterations: Int = 40, lambda: Double = 0.01, alpha: Double = 0.01)
 
   case class Evaluation(output: String, recall: Double) {
     override def toString: String = output
@@ -31,7 +31,7 @@ class ALSModel3 extends Serializable {
 
   case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
 
-  def run(implicit sc: SparkContext): Unit = {
+  override def run(implicit sc: SparkContext): Unit = {
 
     def DataSet_(trainingDataPath: String, predictionDataPath: String, outputPath: String): DataSet = {
       DataSet(
@@ -80,18 +80,18 @@ class ALSModel3 extends Serializable {
     val fileSystem: FileSystem = FileSystem.get(new Configuration)
     //val delete_out_path: String = "hadoop fs -rm -f -r " + OUTPUT_PATH
 
-    val parametersSeq: IndexedSeq[AlsParameters] = for {
+    val parametersSeq: IndexedSeq[(AlsParameters, DataSet)] = for {
       rank <- 2 until 50 by 2
       lambda <- 0.0001 until 15 by 0.1
       alpha <- 0.0001 until 50 by 0.1
       dataSet <- dataSets
-    } yield new AlsParameters(rank, lambda, alpha, dataSet)
+    } yield (AlsParameters(rank = rank, lambda = lambda, alpha = alpha), dataSet)
 
     val futures: IndexedSeq[Future[Unit]] = Random.shuffle(parametersSeq).zipWithIndex.take(1) map {
-      case (parameters, index) =>
-        val trainingData: RDD[Rating] = parameters.dataSet.trainingData
-        val predictionData: RDD[Rating] = parameters.dataSet.predictionData
-        val outputPath: String = parameters.dataSet.outputPath
+      case ((parameters, dataSet), index) =>
+        val trainingData: RDD[Rating] = dataSet.trainingData
+        val predictionData: RDD[Rating] = dataSet.predictionData
+        val outputPath: String = dataSet.outputPath
         case class Prediction(_1: RDD[Rating], _2: RDD[Rating], _3: RDD[Rating], _4: RDD[Rating])
         val split: Prediction = predictionData.randomSplit(Array.fill(4)(0.25), Platform.currentTime) match {
           case Array(split_1, split_2, split_3, split_4) => Prediction(split_1, split_2, split_3, split_4)
@@ -108,24 +108,17 @@ class ALSModel3 extends Serializable {
           evaluation_3: Evaluation <- evaluateModel_3
           evaluation_4: Evaluation <- evaluateModel_4
         } yield {
-          Logger.log.warn("Sum:")
-          //val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
-          val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$outputPath/${System.currentTimeMillis}"))
-          try {
-            //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
-            val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
-            val average: String = "%.4f".format(recalls.sum / recalls.length)
-            val difference: String = "%.4f".format(recalls.max - recalls.min)
-            val header: String = s"$index,$average,$difference,${parameters.rank},${parameters.lambda},${parameters.alpha}"
-            val result: String = s"$header,$evaluation_1\r\n" +
-              s"$header,$evaluation_2\r\n" +
-              s"$header,$evaluation_3\r\n" +
-              s"$header,$evaluation_4\r\n"
-            Logger.log.warn("Sum:" + result)
-            printWriter.write(result)
-          } catch {
-            case e: Exception => Logger.log.error(e.printStackTrace())
-          } finally printWriter.close()
+          //ID,Average,Difference,Rank,Lambda,Alpha,Evaluation
+          val recalls: List[Double] = List(evaluation_1.recall, evaluation_2.recall, evaluation_3.recall, evaluation_4.recall)
+          val average: String = "%.4f".format(recalls.sum / recalls.length)
+          val difference: String = "%.4f".format(recalls.max - recalls.min)
+          val header: String = "%2d,%s,%s,%2d,%07.4f,%07.4f".format(index, average, difference, parameters.rank, parameters.lambda, parameters.alpha)
+          val result: String = s"$header,$evaluation_1\r\n" +
+            s"$header,$evaluation_2\r\n" +
+            s"$header,$evaluation_3\r\n" +
+            s"$header,$evaluation_4\r\n"
+          Logger.log.warn("Sum:" + result)
+          write(s"$outputPath/${System.currentTimeMillis}", result)
         }
     }
     Await.result(Future.sequence(futures), Duration.Inf)
@@ -143,10 +136,6 @@ class ALSModel3 extends Serializable {
     val output: String = evaluation.toListString
     Logger.log.warn("Single:" + output)
     Evaluation(output, evaluation.recall)
-  } recover {
-    case e: Exception =>
-      Logger.log.error(e.printStackTrace())
-      Evaluation("", 0)
   }
 
   def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
@@ -169,53 +158,14 @@ class ALSModel3 extends Serializable {
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 
-  def dropHeader(data: RDD[String]): RDD[String] = {
-    data.mapPartitionsWithIndex {
-      case (0, lines) if lines.hasNext =>
-        lines.next
-        lines
-      case (_, lines) => lines
-    }
-  }
-
-  def mappingData(data: RDD[String]): RDD[Rating] = {
-    Logger.log.warn("Mapping...")
-
-    dropHeader(data) flatMap {
-      _.split(",") match {
-        case Array(pub_id, game_id, saving) =>
-          val gameIdNoQuotes = game_id.replace("\"", "")
-          val rating = saving.toDouble
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
-        case some =>
-          Logger.log.warn("data error:" + some.mkString(","))
-          None
-      }
-    }
-  }
-
-  case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
-
-  case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
-    override def toString: String = {
-      s"\n" +
-        s"Accuracy = $accuracy\n" +
-        s"Precision = $precision\n" +
-        s"Recall = $recall\n" +
-        s"Fallout = $fallout\n" +
-        s"Sensitivity = $sensitivity\n" +
-        s"Specificity = $specificity\n" +
-        s"F = $f"
-    }
-
-    def toListString: String = {
-      s"${"%.4f".format(accuracy)}," +
-        s"${"%.4f".format(precision)}," +
-        s"${"%.4f".format(recall)}," +
-        s"${"%.4f".format(fallout)}," +
-        s"${"%.4f".format(sensitivity)}," +
-        s"${"%.4f".format(specificity)}," +
-        s"${"%.4f".format(f)}"
-    }
+  def write(path: String, content: String): Unit = {
+    //val printWriter: PrintWriter = new PrintWriter(fileSystem.create(new Path(s"$outputPath/${System.nanoTime}")))
+    val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(path, true))
+    try {
+      printWriter.append(content)
+      printWriter.println()
+    } catch {
+      case e: Exception => Logger.log.error(e.printStackTrace())
+    } finally printWriter.close()
   }
 }

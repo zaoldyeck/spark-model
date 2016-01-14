@@ -122,15 +122,7 @@ class ALSModel extends Serializable {
         s"F = $f"
     }
 
-    def toListString: String = {
-      s"${"%.4f".format(accuracy)}," +
-        s"${"%.4f".format(precision)}," +
-        s"${"%.4f".format(recall)}," +
-        s"${"%.4f".format(fallout)}," +
-        s"${"%.4f".format(sensitivity)}," +
-        s"${"%.4f".format(specificity)}," +
-        s"${"%.4f".format(f)}"
-    }
+    def toListString: String = "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f".format(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 
   def calConfusionMatrix(data: RDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {

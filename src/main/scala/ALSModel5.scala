@@ -46,7 +46,7 @@ class ALSModel5 extends Serializable {
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
-            val header: String = s"$index,${parameters.rank},${parameters.lambda},${parameters.alpha}"
+            val header: String = "%2d,%2d,%07.4f,%07.4f".format(index, parameters.rank, parameters.lambda, parameters.alpha)
             val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
             Logger.log.warn(result.toString)
             val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
@@ -123,15 +123,6 @@ class ALSModel5 extends Serializable {
         s"F = $f"
     }
 
-    def toListString: String = {
-      s"${"%.4f".format(accuracy)}," +
-        s"${"%.4f".format(precision)}," +
-        s"${"%.4f".format(recall)}," +
-        s"${"%.4f".format(fallout)}," +
-        s"${"%.4f".format(sensitivity)}," +
-        s"${"%.4f".format(specificity)}," +
-        s"${"%.4f".format(f)}"
-    }
+    def toListString: String = "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f".format(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
-
 }
