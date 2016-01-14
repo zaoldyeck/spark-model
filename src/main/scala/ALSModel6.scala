@@ -41,7 +41,7 @@ class ALSModel6 extends ALSModel3 {
               .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
-            predictResult.saveAsTextFile("./als-all")
+            predictResult.saveAsTextFile("./als-play")
             val header: String = "%2d,%2d,%07.4f,%07.4f".format(index, parameters.rank, parameters.lambda, parameters.alpha)
             val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
             Logger.log.warn(result.toString)
