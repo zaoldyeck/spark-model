@@ -1,85 +1,118 @@
-import java.io.{FileOutputStream, PrintWriter}
-
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.recommendation.{ALS, Rating}
+import org.apache.spark.mllib.recommendation.{MatrixFactorizationModel, ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.compat.Platform
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.sys.process._
 import scala.util.Random
 
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
-class ALSModel5 extends Serializable {
+class ALSModel5 extends ALSFold {
 
-  private val TrainingDataPath: String = "s3n://data.emr/als_web_no_tl_game_revised.csv"
-  private val PredictDataPath: String = "s3n://data.emr/als_web_not_only_tl_game_revised.csv"
-  private val OutputPath: String = "/home/hadoop/output/all-90.txt"
+  private val TrainingDataPath1: String = "s3n://data.emr/double_ckeck_training2.csv"
+  //private val TrainingDataPath2: String = "s3n://data.emr/als_play_90_join_training.csv"
+  //private val TrainingDataPath: String = "s3n://data.emr/als_play_90_training_sample.csv"
+  private val PredictDataPath1: String = "s3n://data.emr/double_check_test_90.csv"
+  private val PredictDataPath2: String = "s3n://data.emr/double_ckeck_test_not_90_2.csv"
+  private val OutputPath: String = "/home/hadoop/output/als-play.txt"
 
-  def run(implicit sc: SparkContext): Unit = {
-    val rddNot90: RDD[Rating] = mappingData(sc.textFile(TrainingDataPath)).persist
-    val rdd90: RDD[Rating] = mappingData(sc.textFile(PredictDataPath)).persist
-    Logger.log.warn("Not 90 Size:" + rddNot90.count)
-    Logger.log.warn("90 Size:" + rdd90.count)
+  override def run(implicit sc: SparkContext): Unit = {
+    val split: Array[RDD[Rating]] = mappingData(sc.textFile(TrainingDataPath1)).randomSplit(Array(0.8, 0.1, 0.1), Platform.currentTime)
+    lazy val trainingRDD1: RDD[Rating] = split(0) //mappingData(sc.textFile(TrainingDataPath1)).persist
+    //lazy val trainingRDD2: RDD[Rating] = mappingData(sc.textFile(TrainingDataPath2)).persist
+    //lazy val trainingRDD: RDD[Rating] = mappingData(sc.textFile(TrainingDataPath)).persist
+    //lazy val validateRDD: RDD[Rating] = mappingData(sc.textFile(PredictDataPath)).persist
+    lazy val testRDD1: RDD[Rating] = split(1) //mappingData(sc.textFile(PredictDataPath1)).persist
+    lazy val testRDD2: RDD[Rating] = split(2) //mappingData2(sc.textFile(PredictDataPath2)).persist
+    //Logger.log.warn("Training Size:" + trainingRDD.count)
+    Logger.log.warn("Training1 Size:" + trainingRDD1.count)
+    Logger.log.warn("Test1 Size:" + testRDD1.count)
+    Logger.log.warn("Test2 Size:" + testRDD2.count)
 
-    case class AlsParameters(rank: Int = 10, lambda: Double = 0.01, alpha: Double = 0.01)
-
+    //The Best:14,37,10.4000,05.9000,0.5916,0.4267,0.4790,0.3477,0.4790,0.6523,0.4514
+    /*
     val parametersSeq: IndexedSeq[AlsParameters] = for {
-      rank <- 2 until 50 by 1
-      lambda <- 0.1 until 15 by 0.1
-      alpha <- 0.1 until 50 by 0.1
-    } yield new AlsParameters(rank, lambda, alpha)
+      rank <- 2 until 100 by 1
+      lambda <- 0.1 until 10 by 0.03
+      alpha <- 0.1 until 10 by 0.03
+    } yield new AlsParameters(rank, 50, lambda, alpha)
+    */
 
-    val futures: IndexedSeq[Future[Any]] = Random.shuffle(parametersSeq).zipWithIndex map {
-      case (parameters, index) => Future {
-        (rddNot90 union rdd90).randomSplit(Array(0.75, 0.25), Platform.currentTime) match {
-          case Array(training, prediction) =>
-            Logger.log.warn("Training Size:" + training.count)
-            Logger.log.warn("Predicting Size:" + prediction.count)
-            Logger.log.warn("Predict...")
-            val predictResult: RDD[PredictResult] = ALS.trainImplicit(rddNot90, 40, parameters.rank, parameters.lambda, parameters.alpha)
-              .predict(prediction.map(rating => (rating.user, rating.product)))
-              .map(predict => ((predict.user, predict.product), predict.rating))
-              .join(prediction.map(result => ((result.user, result.product), result.rating))) map {
-              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
-            }
-            val header: String = "%2d,%2d,%07.4f,%07.4f".format(index, parameters.rank, parameters.lambda, parameters.alpha)
-            val result: ConfusionMatrixResult = calConfusionMatrix(predictResult)
-            Logger.log.warn(result.toString)
-            val printWriter: PrintWriter = new PrintWriter(new FileOutputStream(s"$OutputPath", true))
-            try {
-              printWriter.append(header + "," + result.toListString)
-              printWriter.println()
-            } catch {
-              case e: Exception => Logger.log.error(e.printStackTrace())
-            } finally printWriter.close()
-        }
-      }
+    //Random.shuffle(parametersSeq).zipWithIndex foreach {
+    //case (parameters, index) =>
+    Logger.log.warn("Predict...")
+
+    /*
+    val predictResult: RDD[PredictResult] = new ALS()
+      .setImplicitPrefs(true)
+      .setRank(10)
+      .setIterations(20)
+      .setLambda(0.01)
+      .setAlpha(0.01)
+      .setNonnegative(true)
+      .run(trainingRDD1 union trainingRDD2).predict(validateRDD.map(dataSet => (dataSet.user, dataSet.product)))
+      .map(predict => ((predict.user, predict.product), predict.rating))
+      .join(validateRDD.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+      case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
     }
-    Await.result(Future.sequence(futures), Duration.Inf)
+    */
+    //val not90split: Array[RDD[Rating]] = trainingRDD1.randomSplit(Array(0.9, 0.1), Platform.currentTime)
+    //Logger.log.warn("Training Size:" + not90split(0).count)
+    //Logger.log.warn("Test Size:" + not90split(1).count)
+
+    val model: MatrixFactorizationModel = //ALS.trainImplicit(trainingRDD1, 10, 20, 0.01, 0.01)
+      new ALS()
+        .setImplicitPrefs(true)
+        .setRank(10)
+        .setIterations(20)
+        .setLambda(0.01)
+        .setAlpha(0.01)
+        .setNonnegative(true)
+        .run(trainingRDD1)
+
+    val predictResult: RDD[PredictResult] = model
+      .predict(testRDD1.map(dataSet => (dataSet.user, dataSet.product)))
+      .map(predict => ((predict.user, predict.product), predict.rating))
+      .join(testRDD1.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+      case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+    }
+
+    val predict1: RDD[Rating] = model
+      .predict(testRDD2.map(dataSet => (dataSet.user, dataSet.product)))
+
+    Logger.log.warn("predict1 Size:" + predict1.count())
+
+    val predictResult2: RDD[PredictResult] = predict1
+      .map(predict => ((predict.user, predict.product), predict.rating))
+      .join(testRDD2.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+      case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+    }
+
+    val delete_out_path: String = "hadoop fs -rm -f -r ./als-play"
+    delete_out_path.!
+    val delete_out_path2: String = "hadoop fs -rm -f -r ./als-play2"
+    delete_out_path2.!
+
+    predictResult.saveAsTextFile("./als-play")
+    predictResult2.saveAsTextFile("./als-play2")
+    val evaluation: ConfusionMatrixResult = calConfusionMatrix(predictResult)
+    val evaluation2: ConfusionMatrixResult = calConfusionMatrix(predictResult2)
+    val header: String = "%6d,%2d,%07.4f,%07.4f".format(0, 10, 0.01, 0.01)
+    Logger.log.warn("Single:" + header + ",  " + evaluation.toListString)
+    Logger.log.warn("Single:" + header + ",  " + evaluation2.toListString)
+    write(OutputPath, header + "," + evaluation.toListString)
+    //}
   }
 
-  def dropHeader(data: RDD[String]): RDD[String] = {
-    data.mapPartitionsWithIndex {
-      case (0, lines) if lines.hasNext =>
-        lines.next
-        lines
-      case (_, lines) => lines
-    }
-  }
-
-  def mappingData(data: RDD[String]): RDD[Rating] = {
+  override def mappingData(data: RDD[String]): RDD[Rating] = {
     Logger.log.warn("Mapping...")
 
     dropHeader(data) flatMap {
       _.split(",") match {
-        case Array(pub_id, game_id, saving, play_game_count, is_play_90) =>
-          val gameIdNoQuotes = game_id.replace("\"", "")
-          val rating = saving.toDouble
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
+        case Array(unique_id, game_index, max_login_times, max_login_days, max_duration_sec, pay_times, saving, gender, theme, style, community, type1, type2, web_mobile) =>
+          Some(Rating(unique_id.toInt, game_index.toInt, if (saving.toInt > 0) 1 else 0))
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None
@@ -87,42 +120,45 @@ class ALSModel5 extends Serializable {
     }
   }
 
-  def calConfusionMatrix(predictResult: RDD[PredictResult]): ConfusionMatrixResult = {
-    val result: ConfusionMatrix = predictResult.map {
-      case result: PredictResult if result.fact > 0 && result.predict > 0 => ConfusionMatrix(tp = 1)
-      case result: PredictResult if result.fact > 0 && result.predict <= 0 => ConfusionMatrix(fn = 1)
-      case result: PredictResult if result.fact <= 0 && result.predict > 0 => ConfusionMatrix(fp = 1)
-      case _ ⇒ ConfusionMatrix(tn = 1)
-    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
+  def mappingData2(data: RDD[String]): RDD[Rating] = {
+    Logger.log.warn("Mapping...")
 
-    val p: Double = result.tp + result.fn
-    val n: Double = result.fp + result.tn
-    val accuracy: Double = (result.tp + result.tn) / (p + n)
-    val precision: Double = result.tp / (result.tp + result.fp)
-    val recall: Double = result.tp / p
-    val fallout: Double = result.fp / n
-    val sensitivity: Double = result.tp / (result.tp + result.fn)
-    val specificity: Double = result.tn / (result.fp + result.tn)
-    val f: Double = 2 * ((precision * recall) / (precision + recall))
-    ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
+    dropHeader(data) flatMap {
+      _.split(",") match {
+        case Array(unique_id, game_index, max_login_times, max_login_days, max_duration_sec, pay_times, saving, gender, theme, style, community, type1, type2, web_mobile, play_games, sum_saving) =>
+          Some(Rating(unique_id.toInt, game_index.toInt, if (saving.toInt > 0) 1 else 0))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
+    }
   }
 
-  case class PredictResult(user: Int, product: Int, predict: Double, fact: Double)
+  def mappingData3(data: RDD[String]): RDD[Rating] = {
+    Logger.log.warn("Mapping...")
 
-  case class ConfusionMatrix(tp: Double = 0, fp: Double = 0, fn: Double = 0, tn: Double = 0)
-
-  case class ConfusionMatrixResult(accuracy: Double, precision: Double, recall: Double, fallout: Double, sensitivity: Double, specificity: Double, f: Double) {
-    override def toString: String = {
-      s"\n" +
-        s"Accuracy = $accuracy\n" +
-        s"Precision = $precision\n" +
-        s"Recall = $recall\n" +
-        s"Fallout = $fallout\n" +
-        s"Sensitivity = $sensitivity\n" +
-        s"Specificity = $specificity\n" +
-        s"F = $f"
+    dropHeader(data) flatMap {
+      _.split(",") match {
+        case Array(unique_id, game_index, saving_index, saving) =>
+          Some(Rating(unique_id.toInt, game_index.toInt, saving_index.toDouble))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
     }
+  }
 
-    def toListString: String = "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f".format(accuracy, precision, recall, fallout, sensitivity, specificity, f)
+  def mappingData4(data: RDD[String]): RDD[Rating] = {
+    Logger.log.warn("Mapping...")
+
+    dropHeader(data) flatMap {
+      _.split(",") match {
+        case Array(unique_id, game_index, saving_index, saving, game_nums, play90) =>
+          Some(Rating(unique_id.toInt, game_index.toInt, saving_index.toDouble))
+        case some =>
+          Logger.log.warn("data error:" + some.mkString(","))
+          None
+      }
+    }
   }
 }

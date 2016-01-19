@@ -8,6 +8,7 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SQLContext}
 
+import scala.collection.immutable
 import scala.collection.immutable.IndexedSeq
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,7 +20,7 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/6.
   */
-class ALSModel3 extends ALSModel {
+class ALSFold extends ALSSample {
 
   case class DataSet(trainingData: RDD[Rating], predictionData: RDD[Rating], outputPath: String)
 
@@ -125,6 +126,10 @@ class ALSModel3 extends ALSModel {
     Await.result(Future.sequence(futures), Duration.Inf)
   }
 
+  def logSpace(min: Double, max: Double, count: Int): immutable.IndexedSeq[Double] = {
+    (math.log(min) until math.log(max) by (math.log(max) - math.log(min)) / count).map(math.exp)
+  }
+
   def evaluateModel(trainingData: RDD[Rating], testingData: RDD[Rating], parameters: AlsParameters): Future[Evaluation] = Future {
     Logger.log.warn("Evaluate")
     val predictResult: RDD[PredictResult] = ALS.trainImplicit(trainingData, parameters.rank, 40, parameters.lambda, parameters.alpha)
@@ -149,12 +154,12 @@ class ALSModel3 extends ALSModel {
 
     val p: Double = result.tp + result.fn
     val n: Double = result.fp + result.tn
-    val accuracy: Double = (result.tp + result.tn) / (p + n)
-    val precision: Double = result.tp / (result.tp + result.fp)
-    val recall: Double = result.tp / p
-    val fallout: Double = result.fp / n
+    val accuracy: Double = (result.tp + result.tn) / (p + n) //準確度
+    val precision: Double = result.tp / (result.tp + result.fp) //猜顯性但真正是顯性的比率
+    val recall: Double = result.tp / p //猜顯性正確率
+    val fallout: Double = result.fp / n //猜顯性錯誤率
     val sensitivity: Double = result.tp / (result.tp + result.fn)
-    val specificity: Double = result.tn / (result.fp + result.tn)
+    val specificity: Double = result.tn / (result.fp + result.tn) //猜隱性正確的比率
     val f: Double = 2 * ((precision * recall) / (precision + recall))
     ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }

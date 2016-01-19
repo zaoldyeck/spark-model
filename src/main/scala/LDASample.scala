@@ -5,7 +5,7 @@ import org.apache.spark.mllib.linalg.Vectors
 /**
   * Created by zaoldyeck on 2015/12/28.
   */
-class LDAModel {
+class LDASample {
   val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
   val OUTPUT_PATH = "hdfs://pubgame/user/vincent/lda"
 

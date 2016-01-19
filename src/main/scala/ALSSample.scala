@@ -7,7 +7,7 @@ import scala.sys.process._
 /**
   * Created by zaoldyeck on 2015/12/23.
   */
-class ALSModel extends Serializable {
+class ALSSample extends Serializable {
   private val TRAINING_DATA_IN_PATH = "s3n://data.emr/pg_user_game_90_training_v3.csv"
   private val TEST_DATA_IN_PATH = "s3n://data.emr/pg_user_game_90_other.csv"
   //private val TRAINING_DATA_IN_PATH = "hdfs://pubgame/user/cray/SparkAls/pg_user_game_90_training_web.txt"
@@ -122,7 +122,7 @@ class ALSModel extends Serializable {
         s"F = $f"
     }
 
-    def toListString: String = "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f".format(accuracy, precision, recall, fallout, sensitivity, specificity, f)
+    def toListString: String = "%.4f,%.4f,  %.4f,%.4f,%.4f,%.4f,%.4f".format(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 
   def calConfusionMatrix(data: RDD[((Int, Int), (Double, Double))]): ConfusionMatrixResult = {

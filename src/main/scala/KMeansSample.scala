@@ -7,7 +7,7 @@ import sys.process._
 /**
   * Created by zaoldyeck on 2015/12/27.
   */
-class KMeansModel {
+class KMeansSample {
   val INPUT_PATH = "hdfs://pubgame/user/vincent/efunfun_android_prod_game_for_kmeans.csv"
   val OUTPUT_PATH = "hdfs://pubgame/user/vincent/kmeans"
 

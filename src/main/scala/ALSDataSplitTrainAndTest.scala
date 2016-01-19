@@ -13,7 +13,7 @@ import scala.util.Random
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
-class ALSModel4 extends ALSModel3 {
+class ALSDataSplitTrainAndTest extends ALSFold {
 
   private val DataPath: String = "s3n://data.emr/not_only_90.csv"
   private val OutputPath: String = "/home/hadoop/output/not-only-90.txt"

@@ -7,7 +7,7 @@ import scala.collection.Map
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-class TestALSModel {
+class TestALS {
   def run(sc: SparkContext): Unit = {
     val base = "hdfs://pubgame/user/vincent/"
     val rawUserArtistData = sc.textFile(base + "user_artist_data.txt")
