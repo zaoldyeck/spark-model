@@ -16,8 +16,8 @@ object Main {
     //new ALSModel4().run
     //new ALSModel5().run
     //new ALSModelPredict().run
-    //new ALSModel6().run
-    new ALSPredictPlay().run
+    new ALSDataSplitTwoTest().run
+    //new ALSPredictPlay(4).run
     //new KMeansModel().run
     //new LDAModel().run
     //new TestALSModel().run

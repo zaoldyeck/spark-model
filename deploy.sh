@@ -1,5 +1,6 @@
-#domain=hadoop@ec2-52-192-81-204.ap-northeast-1.compute.amazonaws.com
-domain=hadoop@ec2-52-193-126-70.ap-northeast-1.compute.amazonaws.com
+#domain=hadoop@ec2-52-192-81-204.ap-northeast-1.compute.amazonaws.com #saving
+#domain=hadoop@ec2-52-68-102-184.ap-northeast-1.compute.amazonaws.com #login days>=3
+domain=hadoop@ec2-52-68-241-13.ap-northeast-1.compute.amazonaws.com #login days>=4
 sbt package
 scp -i ~/pubgame.pem -P 22 -pr ./target/scala-2.10/spark-model_2.10-1.0.jar ${domain}:
 #ssh -i ~/pubgame.pem ${domain} \
