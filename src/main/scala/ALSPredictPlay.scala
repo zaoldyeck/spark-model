@@ -42,7 +42,7 @@ class ALSPredictPlay(loginDay: Int) extends ALSFold {
           Logger.log.warn("targetGameTest Size:" + targetGameTest.count)
 
           val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.999, 0.001), Platform.currentTime)
-          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(100).persist
+          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(200).persist
           val notTargetTest: RDD[Rating] = notTargetSplit(1).persist
           Logger.log.warn("notTargetTraining Size:" + notTargetTraining.count)
           Logger.log.warn("notTargetTest Size:" + notTargetTest.count)
