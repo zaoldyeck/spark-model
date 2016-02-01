@@ -9,22 +9,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
 import scala.sys.process._
-import scala.util.Random
+import scala.util.{Failure, Success, Try, Random}
 
 /**
   * Created by zaoldyeck on 2016/1/12.
   */
 class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
-  private val DataPath: String = "s3n://data.emr/web_login_rate"
+  private val DataPath: String = "s3n://data.emr/training_all_login_rate"
   //private val OutputPath: String = s"/home/hadoop/output/als-saving-$gameId.csv"
   private val OutputPath: String = s"/home/vincent/output/als-saving-$gameId.csv"
 
   override def run(implicit sc: SparkContext): Unit = {
-    val executorService: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(20))
+    val executorService: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(25))
     val allRDD: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
     Logger.log.warn("Total Size:" + allRDD.count)
     val targetGameRDD: RDD[Rating] = allRDD.filter(_.product == gameId).persist
-    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).repartition(200).persist
+    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).repartition(50).persist
+    allRDD.unpersist()
 
     //The Best:14,37,10.4000,05.9000,0.5916,0.4267,0.4790,0.3477,0.4790,0.6523,0.4514
     val parametersSeq: IndexedSeq[AlsParameters] = for {
@@ -43,7 +44,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           Logger.log.warn("targetGameTest Size:" + targetGameTest.count)
 
           val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.999, 0.001), Platform.currentTime)
-          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(200).persist
+          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(50).persist
           val notTargetTest: RDD[Rating] = notTargetSplit(1).persist
           Logger.log.warn("notTargetTraining Size:" + notTargetTraining.count)
           Logger.log.warn("notTargetTest Size:" + notTargetTest.count)
@@ -51,7 +52,6 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           Logger.log.warn("Predict...")
 
           try {
-            //MatrixFactorizationModel.load()
             val model: MatrixFactorizationModel = ALS.trainImplicit(targetGameTraining union notTargetTraining, parameters.rank, parameters.iterations, parameters.lambda, parameters.alpha)
             /*
         new ALS()
@@ -63,6 +63,8 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           .setNonnegative(true)
           .run(targetGameTraining union notTargetTraining)
         */
+            targetGameTraining.unpersist()
+            notTargetTraining.unpersist()
 
             val predictResult1: RDD[PredictResult] = model
               .predict(targetGameTest.map(dataSet => (dataSet.user, dataSet.product)))
@@ -70,6 +72,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
               .join(targetGameTest.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
+            targetGameTest.unpersist()
 
             val predictResult2: RDD[PredictResult] = model
               .predict(notTargetTest.map(dataSet => (dataSet.user, dataSet.product)))
@@ -77,6 +80,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
               .join(notTargetTest.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
               case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
             }
+            notTargetTest.unpersist()
 
             val delete_out_path1: String = s"hadoop fs -rm -f -r ./als-saving-$gameId"
             delete_out_path1.!
@@ -93,7 +97,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
             Logger.log.warn("Single:" + header + ",  " + evaluation2.toListString)
             write(OutputPath, header + "," + evaluation1.toListString)
             write(OutputPath, header + "," + evaluation2.toListString)
-            model.save(sc, s"model_als_game78_login_rate/${parameters.rank}_${parameters.iterations}_${parameters.lambda}_${parameters.alpha}")
+            model.save(sc, s"model_als_game${gameId}_login_rate/${index}_${parameters.rank}_${parameters.iterations}_${parameters.lambda}_${parameters.alpha}")
           } catch {
             case e: Exception => Logger.log.warn(e.printStackTrace())
           }
@@ -110,8 +114,13 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
       _.split(",") match {
         //case Array(pub_id, game_id, str_saving, _*) =>
         case Array(unique_id, game_index, max_login_times, max_login_days, max_duration_sec, pay_times, saving, gender, theme, style, community, type1, type2, web_mobile, login_rate) =>
-          val rating: Double = login_rate.toDouble
-          Some(Rating(unique_id.toInt, game_index.toInt, if (max_login_days.toInt > 1 || rating > 1) 1 else 0))
+          Try {
+            val rating: Double = login_rate.toDouble
+            Some(Rating(unique_id.toInt, game_index.toInt, if (max_login_days.toInt > 1 || rating > 1) 1 else 0))
+          } match {
+            case Success(rate) => rate
+            case Failure(e) => None
+          }
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None

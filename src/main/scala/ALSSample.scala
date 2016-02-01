@@ -3,6 +3,7 @@ import org.apache.spark.mllib.recommendation.{ALS, Rating}
 import org.apache.spark.rdd.RDD
 
 import scala.sys.process._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by zaoldyeck on 2015/12/23.
@@ -94,9 +95,14 @@ class ALSSample extends Serializable {
     dropHeader(data) flatMap {
       _.split(",") match {
         case Array(pub_id, game_id, saving) =>
-          val gameIdNoQuotes = game_id.replace("\"", "")
-          val rating = saving.toDouble
-          Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
+          Try {
+            val gameIdNoQuotes = game_id.replace("\"", "")
+            val rating: Double = saving.toDouble
+            Some(Rating(pub_id.toInt, gameIdNoQuotes.toInt, if (rating > 0) 1 else 0))
+          } match {
+            case Success(rate) => rate
+            case Failure(e) => None
+          }
         case some =>
           Logger.log.warn("data error:" + some.mkString(","))
           None
