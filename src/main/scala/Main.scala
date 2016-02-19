@@ -10,9 +10,9 @@ object Main {
     LogManager.getRootLogger.setLevel(Level.WARN)
     val conf: SparkConf = new SparkConf()
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    //.set("spark.executor.cores", "16")
-    //.set("spark.executor.memory", "24576m")
-    //.set("spark.yarn.executor.memoryOverhead", "8192")
+      .set("spark.executor.cores", "16")
+      .set("spark.executor.memory", "24576m")
+      .set("spark.yarn.executor.memoryOverhead", "8192")
     conf.registerKryoClasses(Array(classOf[ALSDataSplitTwoTest], classOf[ALSPredictList], classOf[KMeansSample]))
     implicit val sc: SparkContext = new SparkContext(conf)
     sc.setCheckpointDir("checkpoint")
@@ -35,7 +35,8 @@ object Main {
     //new ALSDataSplitTwoTest(90).run
     //new ALSPredictList(90, "model_als_game90_login_rate/5_30_100_0.25445360117932936_0.09970613948657674").run
     //new ALSPredictPlay(4).run
-    new KMeansSample().run
+    new KMeansSample
+    //new SVD
     //new LDAModel().run
     //new TestALSModel().run
     //new FormatData().run
