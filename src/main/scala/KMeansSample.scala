@@ -6,7 +6,6 @@ import org.apache.spark.mllib.linalg._
 import org.apache.spark.rdd.RDD
 
 import scala.collection.Map
-import scala.collection.immutable.Seq
 import scala.compat.Platform
 import scala.sys.process._
 
@@ -51,13 +50,33 @@ class KMeansSample(implicit sc: SparkContext) extends Serializable {
   //    val models = for (numClusters <- 2 to 200) yield {
   //      KMeans.train(data.values, numClusters, numIterations)
   //    }
-  val counter: AtomicInteger = new AtomicInteger
-  val models: Seq[KMeansModel] = (20 to 20).par.map {
-    numClusters =>
-      Logger.log.warn(s"Now Iteration is [$numClusters], total is [${counter.incrementAndGet}]")
-      KMeans.train(trainingData, numClusters, numIterations)
-  }.seq
+  case class Evaluation(model: KMeansModel,
+                        cluster: Int,
+                        recall: Double,
+                        targetResult: RDD[Int],
+                        targetCountByValue: Map[Int, Long],
+                        testResult: RDD[Int],
+                        testCountByValue: Map[Int, Long])
 
+  val counter: AtomicInteger = new AtomicInteger
+  val bestEvaluation: Evaluation = (10 to 30).par.map {
+    numClusters =>
+      //Logger.log.warn(s"Now Iteration is [$numClusters], total is [${counter.incrementAndGet}]")
+      val model: KMeansModel = KMeans.train(trainingData, numClusters, numIterations)
+      val targetResult: RDD[Int] = targetUsers.mapValues(model.predict).values
+      val targetCountByValue: Map[Int, Long] = targetResult.countByValue
+      val targetMaxCluster: Int = targetCountByValue.maxBy(_._2)._1
+
+      val testResult: RDD[Int] = testData.map(model.predict)
+      val testCountByValue: Map[Int, Long] = testResult.countByValue
+      val testMaxCluster: Int = testCountByValue.maxBy(_._2)._1
+
+      val recall: Double = testCountByValue.maxBy(_._2)._2.toDouble / testResult.count.toDouble
+      Logger.log.warn(s"When cluster = $numClusters, recall = $recall")
+      Evaluation(model, numClusters, if (targetMaxCluster == testMaxCluster) recall else 0, targetResult, targetCountByValue, testResult, testCountByValue)
+  } maxBy (_.recall)
+
+  /*
   val bestModel: (KMeansModel, Double) = models.map(model => {
     val cost: Double = model.computeCost(trainingData)
     Logger.log.warn(s"When k = ${model.k}, cost = $cost")
@@ -65,21 +84,20 @@ class KMeansSample(implicit sc: SparkContext) extends Serializable {
   }).minBy(_._2)
   Logger.log.warn("Best Number of Cluster = " + bestModel._1.k) //112
   Logger.log.warn("Within Set Sum of Squared Errors = " + bestModel._2)
+  */
   trainingData.unpersist()
 
-  val s1: String = "hadoop fs -rm -f -r " + OutputModelPath
-  s1.!
-  val s2 = "hadoop fs -rm -f -r " + OutputPath
-  s2.!
-  val s3 = "hadoop fs -rm -f -r " + TargetPath
-  s3.!
-  val s4 = "hadoop fs -rm -f -r " + TestPath
-  s4.!
+  val path1: String = "hadoop fs -rm -f -r " + OutputModelPath
+  path1.!
+  val path2 = "hadoop fs -rm -f -r " + OutputPath
+  path2.!
+  val path3 = "hadoop fs -rm -f -r " + TargetPath
+  path3.!
+  val path4 = "hadoop fs -rm -f -r " + TestPath
+  path4.!
 
-  bestModel._1.save(sc, OutputModelPath)
-  val allResult: RDD[(Long, Int)] = userVectors.mapValues(bestModel._1.predict)
-  val targetResult: RDD[Int] = targetUsers.mapValues(bestModel._1.predict).values
-  val testResult: RDD[Int] = testData.map(bestModel._1.predict)
+
+  val allResult: RDD[(Long, Int)] = userVectors.mapValues(bestEvaluation.model.predict)
 
   //parsedData zip parsedDataExceptId map {
   //case (vectorWithId, vectorExceptId) => Vectors.dense(vectorWithId.toArray :+ bestModel._1.predict(vectorExceptId).toDouble)
@@ -89,22 +107,23 @@ class KMeansSample(implicit sc: SparkContext) extends Serializable {
   //clusters.save(sc, OUTPUT_PATH)
   //val sameModel = KMeansModel.load(sc, "myModelPath")
 
-  allResult.saveAsObjectFile(OutputPath)
+  Logger.log.warn("Cluster is：" + bestEvaluation.cluster)
+
   Logger.log.warn("All User Size：" + allResult.count)
-  Logger.log.warn("All User Clustering Result：" + allResult.countByValue)
+  Logger.log.warn("All User Clustering Result：" + allResult.values.countByValue)
 
-  targetResult.saveAsObjectFile(TargetPath)
-  Logger.log.warn("Target User Size：" + targetResult.count)
-  private val targetCountByValue: Map[Int, Long] = targetResult.countByValue
-  Logger.log.warn("Target User Clustering Result：" + targetCountByValue) //testResult.map(_ -> 1).reduceByKey(_ + _)
+  Logger.log.warn("Target User Size：" + bestEvaluation.targetResult.count)
+  Logger.log.warn("Target User Clustering Result：" + bestEvaluation.targetCountByValue) //testResult.map(_ -> 1).reduceByKey(_ + _)
 
-  testResult.saveAsObjectFile(TestPath)
-  Logger.log.warn("Test User Size：" + testResult.count)
-  private val testCountByValue: Map[Int, Long] = testResult.countByValue
-  Logger.log.warn("Test User Clustering Result：" + testCountByValue)
+  Logger.log.warn("Test User Size：" + bestEvaluation.testResult.count)
+  Logger.log.warn("Test User Clustering Result：" + bestEvaluation.testCountByValue)
   //testResult.map(_ -> 1).reduceByKey(_ + _)
-  private val targetMaxCluster: (Int, Long) = targetCountByValue.maxBy(_._2)
-  private val testMaxCluster: (Int, Long) = testCountByValue.maxBy(_._2)
-  Logger.log.warn("In test user, is max value of cluster same as target user ?：" + (targetMaxCluster._1 == testMaxCluster._1))
-  Logger.log.warn("Recall is：" + testMaxCluster._2.toDouble / targetMaxCluster._1.toDouble)
+
+  //Logger.log.warn("In test user, is max value of cluster same as target user ?：" + (targetMaxCluster._1 == testMaxCluster._1))
+  Logger.log.warn("Recall is：" + bestEvaluation.recall)
+
+  bestEvaluation.model.save(sc, OutputModelPath)
+  allResult.saveAsObjectFile(OutputPath)
+  bestEvaluation.targetResult.saveAsObjectFile(TargetPath)
+  bestEvaluation.testResult.saveAsObjectFile(TestPath)
 }
