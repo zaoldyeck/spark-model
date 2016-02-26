@@ -16,6 +16,16 @@ object Main {
     conf.registerKryoClasses(Array(classOf[ALSDataSplitTwoTest], classOf[ALSPredictList], classOf[KMeansSample]))
     implicit val sc: SparkContext = new SparkContext(conf)
     sc.setCheckpointDir("checkpoint")
+    args.headOption.foreach {
+      c =>
+        val classLoader = Option(Thread.currentThread().getContextClassLoader).getOrElse(getClass.getClassLoader)
+        val `class` = classLoader.loadClass(c)
+        val ctor = `class`.getConstructor(Array(classOf[SparkContext]): _*)
+        ctor.newInstance(sc)
+//        val run = `class`.getDeclaredMethod("run", Array.empty: _*)
+//        run.setAccessible(true)
+//        run.invoke(instance, Array.empty: _*)
+    }
     /*
     args(0) match {
       case "find" =>
@@ -36,7 +46,7 @@ object Main {
     //new ALSPredictList(90, "model_als_game90_login_rate/5_30_100_0.25445360117932936_0.09970613948657674").run
     //new ALSPredictPlay(4).run
     //new KMeansSample
-    new SVD
+//    new SVD
     //new LDAModel().run
     //new TestALSModel().run
     //new FormatData().run

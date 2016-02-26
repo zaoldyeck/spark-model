@@ -9,6 +9,31 @@ import scala.sys.process._
   * Created by zaoldyeck on 2016/2/18.
   */
 class SVD(implicit sc: SparkContext) extends Serializable {
+
+  //userId, gameId, rating
+  /*
+  val data: RDD[(Int, Int, Int)] = sc.parallelize(Array((1, 1, 1), (2, 1, 5), (3, 1, 5)), 64)
+  private val collect: Array[(Int, Int, Int)] = data.collect()
+  private val gameIdMapping: Map[Int, Int] = collect.map(_._2).distinct.sorted.zipWithIndex.toMap
+  private val groupBy: Map[Int, Array[(Int, Int, Int)]] = collect.groupBy(_._1)
+
+  private val tuples: Seq[(Int, Vector)] = groupBy.map {
+    case (userId, array: Array[(Int, Int, Int)]) =>
+      (userId, Vectors.sparse(gameIdMapping.size, array.map {
+        case (user, gameId, rating) =>
+          (gameIdMapping.get(gameId).get, rating.toDouble)
+      }))
+  } toSeq
+
+  private val parallelize: RDD[(Int, Vector)] = sc.parallelize(tuples)
+
+  val x = Array((10, 20.0), (24, 34.0))
+
+  Vectors.sparse(20, x)
+  */
+
+  //sc.parallelize(Array((1, 0), (2, 3)))
+
   val InputPath = "kmeans_user_games"
   val UPath = "svd/u"
   val SPath = "svd/s"
@@ -51,11 +76,13 @@ class SVD(implicit sc: SparkContext) extends Serializable {
   path5.!
 
   val svd: SingularValueDecomposition[RowMatrix, Matrix] = new RowMatrix(userVectors.values).computeSVD(K, computeU = true)
+
   private val allUsers: RDD[(Array[Double], Long)] = svd.U.rows.map(row => row.toArray).zip(userVectors.map(_._1))
   val allUsersSize: Long = allUsers.count
-  private val targetUsers: RDD[(Array[Double], Long)] = allUsers.filter(row => targetUsersId.contains(row._2))
-  private val games: RDD[(List[Double], Long)] = sc.makeRDD(svd.V.toArray.grouped(svd.V.numRows).toList.transpose).zipWithIndex()
 
+  private val targetUsers: RDD[(Array[Double], Long)] = allUsers.filter(row => targetUsersId.contains(row._2))
+
+  private val games: RDD[(List[Double], Long)] = sc.makeRDD(svd.V.toArray.grouped(svd.V.numRows).toList.transpose).zipWithIndex()
   private val targetGame: (List[Double], Long) = games.filter(_._2 == TargetGameId).first
   private val targetGameMostImportantIndex: Int = targetGame._1.indexOf(targetGame._1.max)
 
@@ -66,25 +93,52 @@ class SVD(implicit sc: SparkContext) extends Serializable {
     case (array, id) => array(targetGameMostImportantIndex)
   }(Ordering[Double].reverse, classTag[Double])
   */
+  findBestPercentage(0.2)
 
-  private val theTopUsers: RDD[((Array[Double], Long), Long)] = allUsers.sortBy({
-    case (array, id) => array(targetGameMostImportantIndex)
-  }, false).zipWithIndex.filter {
-    case ((array, id), index) =>
-      index + 1 <= (allUsersSize * 0.1).toInt
+  def findBestPercentage(percentage: Double): Unit = {
+
+    val topPercentageUsers: RDD[((Array[Double], Long), Long)] = allUsers.sortBy({
+      case (array, id) => array(targetGameMostImportantIndex)
+    }, false).zipWithIndex.filter {
+      case ((array, id), index) =>
+        index + 1 <= (allUsersSize * percentage).toInt
+    }
+
+    val targetPercentageUser: ((Array[Double], Long), Long) = topPercentageUsers.takeOrdered(1)(Ordering[Long].reverse.on(_._2))(0)
+
+    val predictUsers: RDD[(Array[Double], Long)] = allUsers.filter {
+      case (array, id) =>
+        array(targetGameMostImportantIndex) >= targetPercentageUser._1._1(targetGameMostImportantIndex)
+    }
+
+    val recall: Double = predictUsers.map {
+      case (array, id) => if (targetUsersId.contains(id)) 1 else 0
+    }.sum / targetUsers.count.toDouble
+
+    Logger.log.warn(s"When percentage is:$percentage: ,recall is:$recall, predict user size is:${topPercentageUsers.count}")
+    if (percentage > 0.01) findBestPercentage(percentage - 0.005)
   }
 
-  //val theTop20User: ((Array[Double], Long), Long) = theTopUsers.max()(Ordering[Long].reverse.on(_._2))
-  val theTop20User: ((Array[Double], Long), Long) = theTopUsers.takeOrdered(1)(Ordering[Long].reverse.on(_._2))(0)
+  /*
+    private val topPercentageUsers: RDD[((Array[Double], Long), Long)] = allUsers.sortBy({
+      case (array, id) => array(targetGameMostImportantIndex)
+    }, false).zipWithIndex.filter {
+      case ((array, id), index) =>
+        index + 1 <= (allUsersSize * 0.1).toInt
+    }
 
-  private val predictUsers: RDD[(Array[Double], Long)] = allUsers.filter {
-    case (array, id) =>
-      array(targetGameMostImportantIndex) >= theTop20User._1._1(targetGameMostImportantIndex)
-  }
+    //val theTop20User: ((Array[Double], Long), Long) = topPercentageUsers.max()(Ordering[Long].reverse.on(_._2))
+    val targetPercentageUser: ((Array[Double], Long), Long) = topPercentageUsers.takeOrdered(1)(Ordering[Long].reverse.on(_._2))(0)
 
-  private val recall: Double = predictUsers.map {
-    case (array, id) => if (targetUsersId.contains(id)) 1 else 0
-  }.sum / targetUsers.count.toDouble
+    private val predictUsers: RDD[(Array[Double], Long)] = allUsers.filter {
+      case (array, id) =>
+        array(targetGameMostImportantIndex) >= targetPercentageUser._1._1(targetGameMostImportantIndex)
+    }
+
+    private val recall: Double = predictUsers.map {
+      case (array, id) => if (targetUsersId.contains(id)) 1 else 0
+    }.sum / targetUsers.count.toDouble
+    */
 
   /*
   private val recall: Double = (targetUsers.filter {
@@ -92,11 +146,11 @@ class SVD(implicit sc: SparkContext) extends Serializable {
   } count).toDouble / targetUsers.count.toDouble
 */
 
-  Logger.log.warn("Recall is:" + recall)
-
-  Logger.log.warn("Now begin to predict")
-
-  Logger.log.warn("Predict user size is:" + theTopUsers.count)
+  //  Logger.log.warn("Recall is:" + recall)
+  //
+  //  Logger.log.warn("Now begin to predict")
+  //
+  //  Logger.log.warn("Predict user size is:" + topPercentageUsers.count)
 
   /*
   private val predictUsersId: RDD[Long] = allUsers.filter {

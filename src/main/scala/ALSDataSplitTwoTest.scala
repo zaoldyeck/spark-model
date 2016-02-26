@@ -3,13 +3,14 @@ import java.util.concurrent.Executors
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.recommendation.{ALS, MatrixFactorizationModel, Rating}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql._
 
 import scala.compat.Platform
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService, Future}
 import scala.sys.process._
-import scala.util.{Failure, Success, Try, Random}
+import scala.util.{Failure, Random, Success, Try}
 
 /**
   * Created by zaoldyeck on 2016/1/12.
@@ -21,10 +22,14 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
 
   override def run(implicit sc: SparkContext): Unit = {
     val executorService: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(25))
-    val allRDD: RDD[Rating] = mappingData(sc.textFile(DataPath)).persist
+    //val allRDD: RDD[Rating] = mappingData(sc.textFile(DataPath, 64)).persist
+    val allRDD: RDD[Rating] = loadDataFromHive("").persist
     Logger.log.warn("Total Size:" + allRDD.count)
+
     val targetGameRDD: RDD[Rating] = allRDD.filter(_.product == gameId).persist
-    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).repartition(50).persist
+    targetGameRDD.checkpoint
+    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).repartition(64).persist
+    notTargetRDD.checkpoint
     allRDD.unpersist()
 
     //The Best:14,37,10.4000,05.9000,0.5916,0.4267,0.4790,0.3477,0.4790,0.6523,0.4514
@@ -39,30 +44,35 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
         Future {
           val targetGameSplit: Array[RDD[Rating]] = targetGameRDD.randomSplit(Array(0.9, 0.1), Platform.currentTime)
           val targetGameTraining: RDD[Rating] = targetGameSplit(0).persist
+          targetGameTraining.checkpoint
           val targetGameTest: RDD[Rating] = targetGameSplit(1).persist
+          targetGameTest.checkpoint
           Logger.log.warn("targetGameTraining Size:" + targetGameTraining.count)
           Logger.log.warn("targetGameTest Size:" + targetGameTest.count)
 
           val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.999, 0.001), Platform.currentTime)
           val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(50).persist
+          notTargetTraining.checkpoint
           val notTargetTest: RDD[Rating] = notTargetSplit(1).persist
+          notTargetTest.checkpoint
           Logger.log.warn("notTargetTraining Size:" + notTargetTraining.count)
           Logger.log.warn("notTargetTest Size:" + notTargetTest.count)
 
           Logger.log.warn("Predict...")
 
           try {
-            val model: MatrixFactorizationModel = ALS.trainImplicit(targetGameTraining union notTargetTraining, parameters.rank, parameters.iterations, parameters.lambda, parameters.alpha)
-            /*
-        new ALS()
-          .setImplicitPrefs(true)
-          .setRank(parameters.rank)
-          .setIterations(50)
-          .setLambda(parameters.lambda)
-          .setAlpha(parameters.alpha)
-          .setNonnegative(true)
-          .run(targetGameTraining union notTargetTraining)
-        */
+            //val model: MatrixFactorizationModel = ALS.trainImplicit(targetGameTraining union notTargetTraining, parameters.rank, parameters.iterations, parameters.lambda, parameters.alpha)
+
+            val model: MatrixFactorizationModel =
+              new ALS()
+                .setImplicitPrefs(true)
+                .setRank(parameters.rank)
+                .setIterations(parameters.iterations)
+                .setLambda(parameters.lambda)
+                .setAlpha(parameters.alpha)
+                .setNonnegative(true)
+                .run(targetGameTraining union notTargetTraining)
+
             targetGameTraining.unpersist()
             notTargetTraining.unpersist()
 
@@ -125,6 +135,14 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           Logger.log.warn("data error:" + some.mkString(","))
           None
       }
+    }
+  }
+
+  def loadDataFromHive(schema: String)(implicit sc: SparkContext): RDD[Rating] = {
+    val sqlContext = org.apache.spark.sql.SQLContext.getOrCreate(sc)
+
+    sqlContext.sql(s"select unique_id,game_index,unique_login_days from $schema").rdd map {
+      case Row(unique_id: Int, game_index: Int, unique_login_days: Int) => Rating(unique_id, game_index, unique_login_days.toDouble)
     }
   }
 }
