@@ -51,7 +51,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           Logger.log.warn("targetGameTest Size:" + targetGameTest.count)
 
           val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.999, 0.001), Platform.currentTime)
-          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(50).persist
+          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(64).persist
           notTargetTraining.checkpoint
           val notTargetTest: RDD[Rating] = notTargetSplit(1).persist
           notTargetTest.checkpoint
@@ -136,6 +136,26 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
           None
       }
     }
+  }
+
+  override def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
+    val result: ConfusionMatrix = predictResult.map {
+      case result: PredictResult if result.fact >= 7 && result.predict >= 7 => ConfusionMatrix(tp = 1)
+      case result: PredictResult if result.fact >= 7 && result.predict < 7 => ConfusionMatrix(fn = 1)
+      case result: PredictResult if result.fact < 7 && result.predict >= 7 => ConfusionMatrix(fp = 1)
+      case _ ⇒ ConfusionMatrix(tn = 1)
+    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
+
+    val p: Double = result.tp + result.fn
+    val n: Double = result.fp + result.tn
+    val accuracy: Double = (result.tp + result.tn) / (p + n) //準確度
+    val precision: Double = result.tp / (result.tp + result.fp) //猜顯性但真正是顯性的比率
+    val recall: Double = result.tp / p //猜顯性正確率
+    val fallout: Double = result.fp / n //猜顯性錯誤率
+    val sensitivity: Double = result.tp / (result.tp + result.fn)
+    val specificity: Double = result.tn / (result.fp + result.tn) //猜隱性正確的比率
+    val f: Double = 2 * ((precision * recall) / (precision + recall))
+    ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
   }
 
   def loadDataFromHive(schema: String)(implicit sc: SparkContext): RDD[Rating] = {
