@@ -18,18 +18,19 @@ import scala.util.{Failure, Random, Success, Try}
 class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
   private val DataPath: String = "s3n://data.emr/training_all_login_rate"
   //private val OutputPath: String = s"/home/hadoop/output/als-saving-$gameId.csv"
-  private val OutputPath: String = s"/home/vincent/output/als-saving-$gameId.csv"
+  //private val OutputPath: String = s"/home/vincent/output/als-saving-$gameId.csv"
+  private val OutputPath: String = s"/home/vincent/output/als-login-over1-$gameId.csv"
 
   override def run(implicit sc: SparkContext): Unit = {
     val executorService: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(25))
     //val allRDD: RDD[Rating] = mappingData(sc.textFile(DataPath, 64)).persist
-    val allRDD: RDD[Rating] = loadDataFromHive("").persist
+    //val allRDD: RDD[Rating] = loadSavingDataFromHive("parquet.`/user/kigo/kigo_1456315788061/modeling_data`").persist
+    val allRDD: RDD[Rating] = loadLoginDataFromHive("parquet.`/user/kigo/dataset/modeling_data`").persist
+    //val allRDD: RDD[Rating] = loadDataFromHive("parquet.`/user/hive/warehouse/kigo_1456315788061.db/modeling_data`").sample(withReplacement = false, 0.01, Platform.currentTime).persist
     Logger.log.warn("Total Size:" + allRDD.count)
 
     val targetGameRDD: RDD[Rating] = allRDD.filter(_.product == gameId).persist
-    targetGameRDD.checkpoint
-    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).repartition(64).persist
-    notTargetRDD.checkpoint
+    val notTargetRDD: RDD[Rating] = allRDD.filter(_.product != gameId).persist
     allRDD.unpersist()
 
     //The Best:14,37,10.4000,05.9000,0.5916,0.4267,0.4790,0.3477,0.4790,0.6523,0.4514
@@ -44,25 +45,27 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
         Future {
           val targetGameSplit: Array[RDD[Rating]] = targetGameRDD.randomSplit(Array(0.9, 0.1), Platform.currentTime)
           val targetGameTraining: RDD[Rating] = targetGameSplit(0).persist
-          targetGameTraining.checkpoint
           val targetGameTest: RDD[Rating] = targetGameSplit(1).persist
-          targetGameTest.checkpoint
           Logger.log.warn("targetGameTraining Size:" + targetGameTraining.count)
           Logger.log.warn("targetGameTest Size:" + targetGameTest.count)
 
-          val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.999, 0.001), Platform.currentTime)
-          val notTargetTraining: RDD[Rating] = notTargetSplit(0).repartition(64).persist
-          notTargetTraining.checkpoint
+          val notTargetSplit: Array[RDD[Rating]] = notTargetRDD.randomSplit(Array(0.99, 0.01), Platform.currentTime)
+          val notTargetTraining: RDD[Rating] = notTargetSplit(0).persist
           val notTargetTest: RDD[Rating] = notTargetSplit(1).persist
-          notTargetTest.checkpoint
           Logger.log.warn("notTargetTraining Size:" + notTargetTraining.count)
           Logger.log.warn("notTargetTest Size:" + notTargetTest.count)
 
-          Logger.log.warn("Predict...")
+          val trainingData: RDD[Rating] = targetGameTraining.union(notTargetTraining).persist
+          //val trainingDataTest: RDD[Rating] = trainingData.sample(withReplacement = false, 0.2, Platform.currentTime).persist
+          targetGameTraining.unpersist()
+          notTargetTraining.unpersist()
+
+          Logger.log.warn("Training...")
 
           try {
-            //val model: MatrixFactorizationModel = ALS.trainImplicit(targetGameTraining union notTargetTraining, parameters.rank, parameters.iterations, parameters.lambda, parameters.alpha)
+            val model: MatrixFactorizationModel = ALS.trainImplicit(trainingData, parameters.rank, parameters.iterations, parameters.lambda, parameters.alpha)
 
+            /*
             val model: MatrixFactorizationModel =
               new ALS()
                 .setImplicitPrefs(true)
@@ -72,11 +75,20 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
                 .setAlpha(parameters.alpha)
                 .setNonnegative(true)
                 .run(targetGameTraining union notTargetTraining)
+            */
+            trainingData.unpersist()
 
-            targetGameTraining.unpersist()
-            notTargetTraining.unpersist()
-
+            /*
             val predictResult1: RDD[PredictResult] = model
+              .predict(trainingDataTest.map(dataSet => (dataSet.user, dataSet.product)))
+              .map(predict => ((predict.user, predict.product), predict.rating))
+              .join(trainingDataTest.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
+              case ((user, product), (predict, fact)) => PredictResult(user, product, predict, fact)
+            }
+            trainingDataTest.unpersist()
+            */
+
+            val predictResult2: RDD[PredictResult] = model
               .predict(targetGameTest.map(dataSet => (dataSet.user, dataSet.product)))
               .map(predict => ((predict.user, predict.product), predict.rating))
               .join(targetGameTest.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
@@ -84,7 +96,7 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
             }
             targetGameTest.unpersist()
 
-            val predictResult2: RDD[PredictResult] = model
+            val predictResult3: RDD[PredictResult] = model
               .predict(notTargetTest.map(dataSet => (dataSet.user, dataSet.product)))
               .map(predict => ((predict.user, predict.product), predict.rating))
               .join(notTargetTest.map(dataSet => ((dataSet.user, dataSet.product), dataSet.rating))) map {
@@ -92,22 +104,26 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
             }
             notTargetTest.unpersist()
 
-            val delete_out_path1: String = s"hadoop fs -rm -f -r ./als-saving-$gameId"
+            /*
+            val delete_out_path1: String = s"hadoop fs -rm -f -r als-saving-$gameId"
             delete_out_path1.!
-
-            val delete_out_path2: String = s"hadoop fs -rm -f -r ./als-saving-not-$gameId"
+            val delete_out_path2: String = s"hadoop fs -rm -f -r als-saving-not-$gameId"
             delete_out_path2.!
+            predictResult2.saveAsTextFile(s"als-saving-$gameId")
+            predictResult3.saveAsTextFile(s"als-saving-not-$gameId")
+            */
 
-            predictResult1.saveAsTextFile(s"./als-saving-$gameId")
-            predictResult2.saveAsTextFile(s"./als-saving-not-$gameId")
-            val evaluation1: ConfusionMatrixResult = calConfusionMatrix(predictResult1)
+            //val evaluation1: ConfusionMatrixResult = calConfusionMatrix(predictResult1)
             val evaluation2: ConfusionMatrixResult = calConfusionMatrix(predictResult2)
+            val evaluation3: ConfusionMatrixResult = calConfusionMatrix(predictResult3)
             val header: String = "%6d,%2d,%07.4f,%07.4f".format(index, parameters.rank, parameters.lambda, parameters.alpha)
-            Logger.log.warn("Single:" + header + ",  " + evaluation1.toListString)
+            //Logger.log.warn("Single:" + header + ",  " + evaluation1.toListString)
             Logger.log.warn("Single:" + header + ",  " + evaluation2.toListString)
-            write(OutputPath, header + "," + evaluation1.toListString)
+            Logger.log.warn("Single:" + header + ",  " + evaluation3.toListString)
+            //write(OutputPath, header + "," + evaluation1.toListString)
             write(OutputPath, header + "," + evaluation2.toListString)
-            model.save(sc, s"model_als_game${gameId}_login_rate/${index}_${parameters.rank}_${parameters.iterations}_${parameters.lambda}_${parameters.alpha}")
+            write(OutputPath, header + "," + evaluation3.toListString)
+            //model.save(sc, s"model_als_saving_game$gameId/${index}_${parameters.rank}_${parameters.iterations}_${parameters.lambda}_${parameters.alpha}")
           } catch {
             case e: Exception => Logger.log.warn(e.printStackTrace())
           }
@@ -138,31 +154,19 @@ class ALSDataSplitTwoTest(gameId: Int) extends ALSFold {
     }
   }
 
-  override def calConfusionMatrix(predictResult: => RDD[PredictResult]): ConfusionMatrixResult = {
-    val result: ConfusionMatrix = predictResult.map {
-      case result: PredictResult if result.fact >= 7 && result.predict >= 7 => ConfusionMatrix(tp = 1)
-      case result: PredictResult if result.fact >= 7 && result.predict < 7 => ConfusionMatrix(fn = 1)
-      case result: PredictResult if result.fact < 7 && result.predict >= 7 => ConfusionMatrix(fp = 1)
-      case _ ⇒ ConfusionMatrix(tn = 1)
-    }.reduce((sum, row) => ConfusionMatrix(sum.tp + row.tp, sum.fp + row.fp, sum.fn + row.fn, sum.tn + row.tn))
-
-    val p: Double = result.tp + result.fn
-    val n: Double = result.fp + result.tn
-    val accuracy: Double = (result.tp + result.tn) / (p + n) //準確度
-    val precision: Double = result.tp / (result.tp + result.fp) //猜顯性但真正是顯性的比率
-    val recall: Double = result.tp / p //猜顯性正確率
-    val fallout: Double = result.fp / n //猜顯性錯誤率
-    val sensitivity: Double = result.tp / (result.tp + result.fn)
-    val specificity: Double = result.tn / (result.fp + result.tn) //猜隱性正確的比率
-    val f: Double = 2 * ((precision * recall) / (precision + recall))
-    ConfusionMatrixResult(accuracy, precision, recall, fallout, sensitivity, specificity, f)
+  def loadSavingDataFromHive(schema: String)(implicit sc: SparkContext): RDD[Rating] = {
+    val sqlContext = org.apache.spark.sql.SQLContext.getOrCreate(sc)
+    sqlContext.sql(s"select unique_id,game_index,revenue from $schema where web_mobile=2").rdd map {
+      case Row(unique_id: Long, game_index: Int, revenue) =>
+        Rating(unique_id.toInt, game_index, if (Some(revenue).getOrElse(0).asInstanceOf[Long] > 0) 1 else 0)
+    }
   }
 
-  def loadDataFromHive(schema: String)(implicit sc: SparkContext): RDD[Rating] = {
+  def loadLoginDataFromHive(schema: String)(implicit sc: SparkContext): RDD[Rating] = {
     val sqlContext = org.apache.spark.sql.SQLContext.getOrCreate(sc)
-
-    sqlContext.sql(s"select unique_id,game_index,unique_login_days from $schema").rdd map {
-      case Row(unique_id: Int, game_index: Int, unique_login_days: Int) => Rating(unique_id, game_index, unique_login_days.toDouble)
+    sqlContext.sql(s"select unique_id,game_index,unique_login_days from $schema where web_mobile=2").rdd map {
+      case Row(unique_id: Long, game_index: Int, unique_login_days) =>
+        Rating(unique_id.toInt, game_index, if (Some(unique_login_days).getOrElse(0).asInstanceOf[Long] > 1) 1 else 0)
     }
   }
 }

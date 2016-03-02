@@ -29,5 +29,5 @@ exit
 domain=vincent@ec2-54-65-230-104.ap-northeast-1.compute.amazonaws.com
 ssh ${domain}
 nohup spark-submit --class Main ./spark-model_2.11-1.0.jar 2>log &
-spark-submit z --class Main ./spark-model_2.11-1.0.jar
+spark-submit --class Main ./spark-model_2.11-1.0.jar
 nohup spark-submit --queue longrun --class Main ./spark-model_2.11-1.0.jar 2>log &

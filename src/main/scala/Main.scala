@@ -7,25 +7,25 @@ import org.apache.spark._
 
 object Main {
   def main(args: Array[String]) {
-    LogManager.getRootLogger.setLevel(Level.WARN)
+    //LogManager.getRootLogger.setLevel(Level.WARN)
     val conf: SparkConf = new SparkConf()
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    //.set("spark.executor.cores", "16")
-    //.set("spark.executor.memory", "24576m")
-    //.set("spark.yarn.executor.memoryOverhead", "8192")
+//      .set("spark.executor.cores", "16")
+//      .set("spark.executor.memory", "24576m")
+//      .set("spark.yarn.executor.memoryOverhead", "8192")
     conf.registerKryoClasses(Array(classOf[ALSDataSplitTwoTest], classOf[ALSPredictList], classOf[KMeansSample]))
     implicit val sc: SparkContext = new SparkContext(conf)
     sc.setCheckpointDir("checkpoint")
-    args.headOption.foreach {
-      c =>
-        val classLoader = Option(Thread.currentThread().getContextClassLoader).getOrElse(getClass.getClassLoader)
-        val `class` = classLoader.loadClass(c)
-        val ctor = `class`.getConstructor(Array(classOf[SparkContext]): _*)
-        ctor.newInstance(sc)
-//        val run = `class`.getDeclaredMethod("run", Array.empty: _*)
-//        run.setAccessible(true)
-//        run.invoke(instance, Array.empty: _*)
-    }
+    //    args.headOption.foreach {
+    //      c =>
+    //        val classLoader = Option(Thread.currentThread().getContextClassLoader).getOrElse(getClass.getClassLoader)
+    //        val `class` = classLoader.loadClass(c)
+    //        val ctor = `class`.getConstructor(Array(classOf[SparkContext]): _*)
+    //        ctor.newInstance(sc)
+    //        val run = `class`.getDeclaredMethod("run", Array.empty: _*)
+    //        run.setAccessible(true)
+    //        run.invoke(instance, Array.empty: _*)
+    //}
     /*
     args(0) match {
       case "find" =>
@@ -42,11 +42,11 @@ object Main {
     //new ALSModel4().run
     //new ALSModel5().run:
     //new ALSModelPredict().run
-    //new ALSDataSplitTwoTest(90).run
-    //new ALSPredictList(90, "model_als_game90_login_rate/5_30_100_0.25445360117932936_0.09970613948657674").run
+    //new ALSDataSplitTwoTest(192).run
+    //new ALSPredictList(192, "model_als_game90_login_rate/5_30_100_0.25445360117932936_0.09970613948657674").run
     //new ALSPredictPlay(4).run
     //new KMeansSample
-//    new SVD
+    new SVD().run
     //new LDAModel().run
     //new TestALSModel().run
     //new FormatData().run
